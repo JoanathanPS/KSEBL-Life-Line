@@ -1,15 +1,26 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { setupWebSocket } from "./websocket";
+import authRoutes from "./routes/auth";
+import dashboardRoutes from "./routes/dashboard";
+import eventsRoutes from "./routes/events";
+import feedersRoutes from "./routes/feeders";
+import substationsRoutes from "./routes/substations";
+import waveformsRoutes from "./routes/waveforms";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
-
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+  // Register all API routes
+  app.use("/api/auth", authRoutes);
+  app.use("/api/dashboard", dashboardRoutes);
+  app.use("/api/events", eventsRoutes);
+  app.use("/api/feeders", feedersRoutes);
+  app.use("/api/substations", substationsRoutes);
+  app.use("/api/waveforms", waveformsRoutes);
 
   const httpServer = createServer(app);
+  
+  // Setup WebSocket for real-time updates
+  setupWebSocket(httpServer);
 
   return httpServer;
 }

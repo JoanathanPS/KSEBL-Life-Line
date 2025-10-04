@@ -48,13 +48,15 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded bg-primary flex items-center justify-center">
-            <Activity className="w-5 h-5 text-primary-foreground" />
-          </div>
+        <div className="flex items-center gap-3">
+          <img 
+            src="/attached_assets/SIH P-1_LOGO_1759550517457.jpg" 
+            alt="KSEBL Logo" 
+            className="w-10 h-10 object-contain"
+          />
           <div>
-            <h2 className="text-sm font-semibold">Kerala Grid</h2>
-            <p className="text-xs text-muted-foreground">Line Break Detection</p>
+            <h2 className="text-sm font-bold">KSEBL</h2>
+            <p className="text-xs font-semibold text-primary">LIFE LINE</p>
           </div>
         </div>
       </SidebarHeader>

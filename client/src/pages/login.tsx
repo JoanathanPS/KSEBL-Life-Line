@@ -21,18 +21,20 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/20 to-primary/5 items-center justify-center p-12">
         <div className="max-w-md">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-lg bg-primary flex items-center justify-center">
-              <Activity className="w-8 h-8 text-primary-foreground" />
-            </div>
+          <div className="flex items-center gap-4 mb-6">
+            <img 
+              src="/attached_assets/SIH P-1_LOGO_1759550517457.jpg" 
+              alt="KSEBL Logo" 
+              className="w-20 h-20 object-contain"
+            />
             <div>
-              <h1 className="text-2xl font-bold">Kerala Grid Monitor</h1>
-              <p className="text-muted-foreground">Line Break Detection System</p>
+              <h1 className="text-3xl font-bold">KSEBL</h1>
+              <p className="text-xl font-semibold text-primary">LIFE LINE</p>
             </div>
           </div>
           <h2 className="text-3xl font-bold mb-4">Real-time Power Grid Monitoring</h2>
           <p className="text-muted-foreground text-lg">
-            AI-powered fault detection system for Kerala's LT power distribution network. 
+            AI-powered fault detection system for Kerala State Electricity Board's LT power distribution network. 
             Monitor grid health, detect line breaks, and coordinate field crews in real-time.
           </p>
         </div>
@@ -41,12 +43,14 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <div className="flex items-center gap-2 lg:hidden mb-4">
-              <div className="w-10 h-10 rounded bg-primary flex items-center justify-center">
-                <Activity className="w-6 h-6 text-primary-foreground" />
-              </div>
+            <div className="flex items-center gap-3 lg:hidden mb-4">
+              <img 
+                src="/attached_assets/SIH P-1_LOGO_1759550517457.jpg" 
+                alt="KSEBL Logo" 
+                className="w-12 h-12 object-contain"
+              />
               <div>
-                <CardTitle className="text-xl">Kerala Grid Monitor</CardTitle>
+                <CardTitle className="text-xl font-bold">KSEBL LIFE LINE</CardTitle>
               </div>
             </div>
             <CardTitle className="text-2xl">Sign In</CardTitle>

@@ -50,9 +50,16 @@ function AppLayout() {
           <header className="flex items-center justify-between gap-4 px-6 py-3 border-b border-border bg-background sticky top-0 z-50">
             <div className="flex items-center gap-4">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
-              <div className="hidden sm:block">
-                <h2 className="text-sm font-semibold">Kerala Grid Monitor</h2>
-                <p className="text-xs text-muted-foreground">Real-time Detection System</p>
+              <div className="hidden sm:flex items-center gap-2">
+                <img 
+                  src="/attached_assets/SIH P-1_LOGO_1759550517457.jpg" 
+                  alt="KSEBL Logo" 
+                  className="w-8 h-8 object-contain"
+                />
+                <div>
+                  <h2 className="text-sm font-bold">KSEBL LIFE LINE</h2>
+                  <p className="text-xs text-muted-foreground">Real-time Detection System</p>
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
