@@ -1,16 +1,16 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Clock, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
-import { Event } from '../types';
+import { OutageEvent } from '../utils/mockData';
 import { clsx } from 'clsx';
 
 interface EventTimelineProps {
-  events: Event[];
+  events: OutageEvent[];
   className?: string;
 }
 
 export const EventTimeline: React.FC<EventTimelineProps> = ({ events, className }) => {
-  const getStatusIcon = (status: Event['status']) => {
+  const getStatusIcon = (status: OutageEvent['status']) => {
     switch (status) {
       case 'active':
         return <AlertTriangle className="h-4 w-4 text-error-500" />;
@@ -25,7 +25,7 @@ export const EventTimeline: React.FC<EventTimelineProps> = ({ events, className 
     }
   };
 
-  const getSeverityColor = (severity: Event['severity']) => {
+  const getSeverityColor = (severity: OutageEvent['severity']) => {
     switch (severity) {
       case 'critical':
         return 'border-l-error-500';

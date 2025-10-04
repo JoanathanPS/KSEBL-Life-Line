@@ -14,9 +14,9 @@ export const Header: React.FC = () => {
         {/* Logo */}
         <div className="flex items-center space-x-2">
           <div className="h-8 w-8 rounded bg-primary-600 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">KL</span>
+            <span className="text-white font-bold text-sm">KSEBL</span>
           </div>
-          <span className="font-semibold text-lg">Kerala LT System</span>
+          <span className="font-semibold text-lg">KSEBL Life Line</span>
         </div>
 
         {/* Right side */}

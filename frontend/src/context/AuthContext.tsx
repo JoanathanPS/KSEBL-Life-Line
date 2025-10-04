@@ -1,6 +1,21 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, LoginCredentials } from '../types/auth';
-import { authApi } from '../api/auth';
+
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: 'admin' | 'operator' | 'field_crew';
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LoginCredentials {
+  username: string;
+  password: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -8,7 +23,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => void;
-  refreshToken: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,62 +39,45 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
+// Mock user data
+const mockUser: User = {
+  id: '1',
+  username: 'admin',
+  email: 'admin@ksebl.in',
+  firstName: 'KSEBL',
+  lastName: 'Admin',
+  role: 'admin',
+  isActive: true,
+  createdAt: '2024-01-01T00:00:00Z',
+  updatedAt: '2024-01-01T00:00:00Z',
+};
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
-      const token = localStorage.getItem('accessToken');
-      if (token) {
-        try {
-          const userData = await authApi.getCurrentUser();
-          setUser(userData);
-        } catch (error) {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-        }
-      }
-      setIsLoading(false);
-    };
-
-    initAuth();
+    // Check for existing session
+    const token = localStorage.getItem('ksebl_token');
+    if (token) {
+      setUser(mockUser);
+    }
+    setIsLoading(false);
   }, []);
 
   const login = async (credentials: LoginCredentials) => {
-    try {
-      const response = await authApi.login(credentials);
-      const { accessToken, refreshToken, user: userData } = response;
-      
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
-      setUser(userData);
-    } catch (error) {
-      throw error;
+    // Mock authentication - accept any username/password for demo
+    if (credentials.username && credentials.password) {
+      localStorage.setItem('ksebl_token', 'mock-token');
+      setUser(mockUser);
+    } else {
+      throw new Error('Invalid credentials');
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('ksebl_token');
     setUser(null);
-  };
-
-  const refreshToken = async () => {
-    try {
-      const refreshTokenValue = localStorage.getItem('refreshToken');
-      if (!refreshTokenValue) {
-        throw new Error('No refresh token available');
-      }
-
-      const response = await authApi.refreshToken(refreshTokenValue);
-      const { accessToken } = response;
-      
-      localStorage.setItem('accessToken', accessToken);
-    } catch (error) {
-      logout();
-      throw error;
-    }
   };
 
   const value = {
@@ -89,7 +86,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: !!user,
     login,
     logout,
-    refreshToken,
   };
 
   return (

@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Event, Substation, Feeder } from '../types';
+import { OutageEvent, Substation, Feeder } from '../utils/mockData';
 import { AlertTriangle, Building2, Zap } from 'lucide-react';
 
 // Fix for default markers in react-leaflet
@@ -14,13 +14,13 @@ L.Icon.Default.mergeOptions({
 });
 
 interface LiveMapProps {
-  events: Event[];
+  events: OutageEvent[];
   substations: Substation[];
   feeders: Feeder[];
   className?: string;
 }
 
-const MapUpdater: React.FC<{ events: Event[]; substations: Substation[]; feeders: Feeder[] }> = ({ events, substations, feeders }) => {
+const MapUpdater: React.FC<{ events: OutageEvent[]; substations: Substation[]; feeders: Feeder[] }> = ({ events, substations, feeders }) => {
   const map = useMap();
 
   useEffect(() => {
@@ -28,11 +28,11 @@ const MapUpdater: React.FC<{ events: Event[]; substations: Substation[]; feeders
       const bounds = L.latLngBounds([]);
       
       events.forEach(event => {
-        bounds.extend([event.location.latitude, event.location.longitude]);
+        bounds.extend(event.coordinates);
       });
       
       substations.forEach(substation => {
-        bounds.extend([substation.location.latitude, substation.location.longitude]);
+        bounds.extend(substation.coordinates);
       });
 
       if (!bounds.isEmpty()) {
@@ -47,7 +47,7 @@ const MapUpdater: React.FC<{ events: Event[]; substations: Substation[]; feeders
 export const LiveMap: React.FC<LiveMapProps> = ({ events, substations, feeders, className }) => {
   const mapRef = useRef<L.Map>(null);
 
-  const getEventIcon = (severity: Event['severity']) => {
+  const getEventIcon = (severity: OutageEvent['severity']) => {
     const color = {
       critical: '#dc2626',
       high: '#f59e0b',
@@ -101,7 +101,7 @@ export const LiveMap: React.FC<LiveMapProps> = ({ events, substations, feeders, 
         {events.map((event) => (
           <Marker
             key={`event-${event.id}`}
-            position={[event.location.latitude, event.location.longitude]}
+            position={event.coordinates}
             icon={getEventIcon(event.severity)}
           >
             <Popup>
@@ -112,6 +112,7 @@ export const LiveMap: React.FC<LiveMapProps> = ({ events, substations, feeders, 
                 </div>
                 <p className="text-sm text-gray-700 mb-2">{event.description}</p>
                 <div className="text-xs text-gray-600">
+                  <p><strong>District:</strong> {event.district}</p>
                   <p><strong>Status:</strong> {event.status}</p>
                   <p><strong>Affected:</strong> {event.affectedCustomers} customers</p>
                   <p><strong>Time:</strong> {new Date(event.timestamp).toLocaleString()}</p>
@@ -125,7 +126,7 @@ export const LiveMap: React.FC<LiveMapProps> = ({ events, substations, feeders, 
         {substations.map((substation) => (
           <Marker
             key={`substation-${substation.id}`}
-            position={[substation.location.latitude, substation.location.longitude]}
+            position={substation.coordinates}
             icon={getSubstationIcon()}
           >
             <Popup>

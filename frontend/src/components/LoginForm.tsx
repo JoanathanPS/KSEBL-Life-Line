@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useNotification } from '../hooks/useNotification';
 import { Button } from './ui/Button';
@@ -16,6 +17,7 @@ export const LoginForm: React.FC = () => {
 
   const { login } = useAuth();
   const { addNotification } = useNotification();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,13 +28,14 @@ export const LoginForm: React.FC = () => {
       addNotification({
         type: 'success',
         title: 'Login Successful',
-        message: 'Welcome to Kerala LT System',
+        message: 'Welcome to KSEBL Life Line',
       });
+      navigate('/');
     } catch (error: any) {
       addNotification({
         type: 'error',
         title: 'Login Failed',
-        message: error.response?.data?.message || 'Invalid credentials',
+        message: error.message || 'Invalid credentials',
       });
     } finally {
       setIsLoading(false);
@@ -54,10 +57,10 @@ export const LoginForm: React.FC = () => {
             <span className="text-white font-bold text-xl">KL</span>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Kerala LT System
+            KSEBL Life Line
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Line Break Detection System
+            Kerala State Electricity Board Dashboard
           </p>
         </div>
 
@@ -114,7 +117,7 @@ export const LoginForm: React.FC = () => {
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Demo credentials: admin / admin123
+                Demo: Enter any username and password
               </p>
             </div>
           </CardContent>

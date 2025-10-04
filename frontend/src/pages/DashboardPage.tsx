@@ -11,130 +11,31 @@ import {
   Building2, 
   Zap, 
   Users,
-  TrendingUp,
-  TrendingDown
+  Clock,
+  Shield
 } from 'lucide-react';
-import { DashboardStats, Event, Substation, Feeder } from '../types';
-import { dashboardApi } from '../api/dashboard';
+import { 
+  dashboardStats, 
+  keralaOutages, 
+  keralaSubstations, 
+  keralaFeeders
+} from '../utils/mockData';
 
 const DashboardPage: React.FC = () => {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [recentEvents, setRecentEvents] = useState<Event[]>([]);
-  const [substations, setSubstations] = useState<Substation[]>([]);
-  const [feeders, setFeeders] = useState<Feeder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Mock waveform data
   const waveformData = [
-    { timestamp: '2024-01-01T00:00:00Z', voltage: 220, current: 15, frequency: 50 },
-    { timestamp: '2024-01-01T00:01:00Z', voltage: 218, current: 16, frequency: 49.8 },
-    { timestamp: '2024-01-01T00:02:00Z', voltage: 222, current: 14, frequency: 50.1 },
-    { timestamp: '2024-01-01T00:03:00Z', voltage: 219, current: 17, frequency: 49.9 },
-    { timestamp: '2024-01-01T00:04:00Z', voltage: 221, current: 15, frequency: 50.0 },
+    { timestamp: '2024-01-25T00:00:00Z', voltage: 220, current: 15, frequency: 50 },
+    { timestamp: '2024-01-25T00:01:00Z', voltage: 218, current: 16, frequency: 49.8 },
+    { timestamp: '2024-01-25T00:02:00Z', voltage: 222, current: 14, frequency: 50.1 },
+    { timestamp: '2024-01-25T00:03:00Z', voltage: 219, current: 17, frequency: 49.9 },
+    { timestamp: '2024-01-25T00:04:00Z', voltage: 221, current: 15, frequency: 50.0 },
   ];
 
   useEffect(() => {
-    const loadDashboardData = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Mock data for now - replace with actual API calls
-        setStats({
-          totalEvents: 156,
-          activeEvents: 12,
-          resolvedEvents: 144,
-          totalSubstations: 45,
-          operationalSubstations: 42,
-          totalFeeders: 180,
-          operationalFeeders: 175,
-          affectedCustomers: 1250,
-        });
-
-        setRecentEvents([
-          {
-            id: '1',
-            timestamp: '2024-01-15T10:30:00Z',
-            location: { latitude: 10.8505, longitude: 76.2711, address: 'Thiruvananthapuram' },
-            severity: 'high',
-            status: 'active',
-            type: 'line_break',
-            description: 'LT line break detected in residential area',
-            affectedCustomers: 45,
-            substationId: 'sub-1',
-            feederId: 'feed-1',
-          },
-          {
-            id: '2',
-            timestamp: '2024-01-15T09:15:00Z',
-            location: { latitude: 10.8505, longitude: 76.2711, address: 'Kochi' },
-            severity: 'medium',
-            status: 'investigating',
-            type: 'voltage_drop',
-            description: 'Voltage drop in commercial area',
-            affectedCustomers: 23,
-            substationId: 'sub-2',
-            feederId: 'feed-2',
-          },
-        ]);
-
-        setSubstations([
-          {
-            id: 'sub-1',
-            name: 'Thiruvananthapuram SS',
-            location: { latitude: 10.8505, longitude: 76.2711, address: 'Thiruvananthapuram' },
-            capacity: 50,
-            voltage: 11,
-            status: 'operational',
-            lastInspection: '2024-01-01',
-            nextInspection: '2024-04-01',
-            feeders: [],
-          },
-          {
-            id: 'sub-2',
-            name: 'Kochi SS',
-            location: { latitude: 9.9312, longitude: 76.2673, address: 'Kochi' },
-            capacity: 75,
-            voltage: 11,
-            status: 'operational',
-            lastInspection: '2024-01-05',
-            nextInspection: '2024-04-05',
-            feeders: [],
-          },
-        ]);
-
-        setFeeders([
-          {
-            id: 'feed-1',
-            name: 'TVM-FEEDER-01',
-            substationId: 'sub-1',
-            capacity: 25,
-            voltage: 0.4,
-            status: 'operational',
-            length: 5.2,
-            customers: 150,
-            lastMaintenance: '2024-01-10',
-          },
-          {
-            id: 'feed-2',
-            name: 'KOCHI-FEEDER-02',
-            substationId: 'sub-2',
-            capacity: 30,
-            voltage: 0.4,
-            status: 'operational',
-            length: 6.8,
-            customers: 200,
-            lastMaintenance: '2024-01-12',
-          },
-        ]);
-
-      } catch (error) {
-        console.error('Failed to load dashboard data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadDashboardData();
+    // Simulate loading
+    setTimeout(() => setIsLoading(false), 1000);
   }, []);
 
   if (isLoading) {
@@ -149,37 +50,56 @@ const DashboardPage: React.FC = () => {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Overview of Kerala LT Line Break Detection System</p>
+        <h1 className="text-3xl font-bold text-gray-900">KSEBL Life Line Dashboard</h1>
+        <p className="text-gray-600">Kerala State Electricity Board - Real-time Monitoring</p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Total Events"
-          value={stats?.totalEvents || 0}
+          value={dashboardStats.totalEvents}
           change={12}
           changeType="increase"
           icon={Activity}
         />
         <StatsCard
           title="Active Events"
-          value={stats?.activeEvents || 0}
+          value={dashboardStats.activeEvents}
           change={-8}
           changeType="decrease"
           icon={AlertTriangle}
         />
         <StatsCard
           title="Substations"
-          value={`${stats?.operationalSubstations || 0}/${stats?.totalSubstations || 0}`}
+          value={`${dashboardStats.operationalSubstations}/${dashboardStats.totalSubstations}`}
           icon={Building2}
         />
         <StatsCard
           title="Affected Customers"
-          value={stats?.affectedCustomers || 0}
+          value={dashboardStats.affectedCustomers}
           change={-15}
           changeType="decrease"
           icon={Users}
+        />
+      </div>
+
+      {/* Additional Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatsCard
+          title="Avg Response Time"
+          value={`${dashboardStats.avgResponseTime} min`}
+          icon={Clock}
+        />
+        <StatsCard
+          title="System Uptime"
+          value={`${dashboardStats.systemUptime}%`}
+          icon={Shield}
+        />
+        <StatsCard
+          title="Operational Feeders"
+          value={`${dashboardStats.operationalFeeders}/${dashboardStats.totalFeeders}`}
+          icon={Zap}
         />
       </div>
 
@@ -189,13 +109,13 @@ const DashboardPage: React.FC = () => {
         <div className="lg:col-span-2">
           <Card className="h-96">
             <CardHeader>
-              <CardTitle>Live System Map</CardTitle>
+              <CardTitle>Kerala Power Grid Map</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <LiveMap 
-                events={recentEvents} 
-                substations={substations} 
-                feeders={feeders}
+                events={keralaOutages} 
+                substations={keralaSubstations} 
+                feeders={keralaFeeders}
                 className="h-80"
               />
             </CardContent>
@@ -204,14 +124,14 @@ const DashboardPage: React.FC = () => {
 
         {/* Alert Panel */}
         <div>
-          <AlertPanel events={recentEvents} className="h-96" />
+          <AlertPanel events={keralaOutages} className="h-96" />
         </div>
       </div>
 
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Event Timeline */}
-        <EventTimeline events={recentEvents} className="h-96" />
+        <EventTimeline events={keralaOutages} className="h-96" />
         
         {/* Waveform Chart */}
         <WaveformChart data={waveformData} className="h-96" />

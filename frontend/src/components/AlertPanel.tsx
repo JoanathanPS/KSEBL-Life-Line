@@ -1,16 +1,16 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { AlertTriangle, Clock, MapPin, Users } from 'lucide-react';
-import { Event } from '../types';
+import { OutageEvent } from '../utils/mockData';
 import { clsx } from 'clsx';
 
 interface AlertPanelProps {
-  events: Event[];
+  events: OutageEvent[];
   className?: string;
 }
 
 export const AlertPanel: React.FC<AlertPanelProps> = ({ events, className }) => {
-  const getSeverityColor = (severity: Event['severity']) => {
+  const getSeverityColor = (severity: OutageEvent['severity']) => {
     switch (severity) {
       case 'critical':
         return 'border-l-error-500 bg-error-50';
@@ -25,7 +25,7 @@ export const AlertPanel: React.FC<AlertPanelProps> = ({ events, className }) => 
     }
   };
 
-  const getStatusColor = (status: Event['status']) => {
+  const getStatusColor = (status: OutageEvent['status']) => {
     switch (status) {
       case 'active':
         return 'bg-error-100 text-error-800';
@@ -75,7 +75,7 @@ export const AlertPanel: React.FC<AlertPanelProps> = ({ events, className }) => 
                   <div className="flex items-center space-x-4 text-xs text-gray-600">
                     <div className="flex items-center space-x-1">
                       <MapPin className="h-3 w-3" />
-                      <span>{event.location.address}</span>
+                      <span>{event.district}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Users className="h-3 w-3" />
