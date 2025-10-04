@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { ChartData } from '../types';
 
-export const AnalyticsPage: React.FC = () => {
+const AnalyticsPage: React.FC = () => {
   const [dateRange, setDateRange] = useState('7d');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -277,3 +277,5 @@ export const AnalyticsPage: React.FC = () => {
     </div>
   );
 };
+
+export default AnalyticsPage;

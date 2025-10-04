@@ -8,7 +8,7 @@ import { Building2, Filter, Search, Plus, Eye, Edit, Trash2 } from 'lucide-react
 import { Substation } from '../types';
 import { substationsApi } from '../api/substations';
 
-export const SubstationsPage: React.FC = () => {
+const SubstationsPage: React.FC = () => {
   const [substations, setSubstations] = useState<Substation[]>([]);
   const [filteredSubstations, setFilteredSubstations] = useState<Substation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -288,3 +288,5 @@ export const SubstationsPage: React.FC = () => {
     </div>
   );
 };
+
+export default SubstationsPage;

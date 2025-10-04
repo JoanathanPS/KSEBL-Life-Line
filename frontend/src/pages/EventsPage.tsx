@@ -8,7 +8,7 @@ import { AlertTriangle, Filter, Search, Plus, Eye, Edit } from 'lucide-react';
 import { Event } from '../types';
 import { eventsApi } from '../api/events';
 
-export const EventsPage: React.FC = () => {
+const EventsPage: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -326,3 +326,5 @@ export const EventsPage: React.FC = () => {
     </div>
   );
 };
+
+export default EventsPage;

@@ -8,7 +8,7 @@ import { Zap, Filter, Search, Plus, Eye, Edit, Trash2 } from 'lucide-react';
 import { Feeder } from '../types';
 import { feedersApi } from '../api/feeders';
 
-export const FeedersPage: React.FC = () => {
+const FeedersPage: React.FC = () => {
   const [feeders, setFeeders] = useState<Feeder[]>([]);
   const [filteredFeeders, setFilteredFeeders] = useState<Feeder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -306,3 +306,5 @@ export const FeedersPage: React.FC = () => {
     </div>
   );
 };
+
+export default FeedersPage;

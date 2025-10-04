@@ -17,7 +17,7 @@ import {
 import { DashboardStats, Event, Substation, Feeder } from '../types';
 import { dashboardApi } from '../api/dashboard';
 
-export const DashboardPage: React.FC = () => {
+const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentEvents, setRecentEvents] = useState<Event[]>([]);
   const [substations, setSubstations] = useState<Substation[]>([]);
@@ -219,3 +219,5 @@ export const DashboardPage: React.FC = () => {
     </div>
   );
 };
+
+export default DashboardPage;

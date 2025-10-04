@@ -18,7 +18,7 @@ import {
   Trash2
 } from 'lucide-react';
 
-export const SettingsPage: React.FC = () => {
+const SettingsPage: React.FC = () => {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { addNotification } = useNotification();
@@ -369,3 +369,5 @@ export const SettingsPage: React.FC = () => {
     </div>
   );
 };
+
+export default SettingsPage;
