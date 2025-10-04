@@ -1,62 +1,39 @@
+import { useQuery } from "@tanstack/react-query";
 import StatCard from "@/components/StatCard";
 import EventFeed from "@/components/EventFeed";
 import WaveformChart from "@/components/WaveformChart";
 import { Activity, AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import type { LineBreakEvent } from "@shared/schema";
+import { formatDistanceToNow } from "date-fns";
+
+interface DashboardStats {
+  activeEvents: number;
+  healthyFeeders: number;
+  totalFeeders: number;
+  activeAlerts: number;
+  avgResponseTime: string;
+  totalSubstations: number;
+}
+
+interface DashboardEventsResponse {
+  events: (LineBreakEvent & { feederName?: string; feederCode?: string })[];
+}
 
 export default function DashboardPage() {
-  //todo: remove mock functionality
-  const mockStats = {
-    activeEvents: 12,
-    healthyFeeders: 145,
-    activeAlerts: 8,
-    avgResponseTime: "12 min",
-  };
+  const { toast } = useToast();
 
-  //todo: remove mock functionality
-  const mockEvents = [
-    {
-      id: "1",
-      feederName: "Thiruvananthapuram North Feeder",
-      feederCode: "TVM-NF-001",
-      detectedAt: "2 min ago",
-      severity: "critical" as const,
-      status: "detected" as const,
-      location: "12.5 km",
-      confidence: 94,
-    },
-    {
-      id: "2",
-      feederName: "Kochi Industrial Zone",
-      feederCode: "KOC-IZ-042",
-      detectedAt: "15 min ago",
-      severity: "high" as const,
-      status: "acknowledged" as const,
-      location: "8.3 km",
-      confidence: 87,
-    },
-    {
-      id: "3",
-      feederName: "Kozhikode Urban Area",
-      feederCode: "KZD-UA-018",
-      detectedAt: "1 hour ago",
-      severity: "medium" as const,
-      status: "crew_dispatched" as const,
-      location: "15.2 km",
-      confidence: 91,
-    },
-    {
-      id: "4",
-      feederName: "Palakkad Rural Zone",
-      feederCode: "PKD-RZ-025",
-      detectedAt: "2 hours ago",
-      severity: "low" as const,
-      status: "resolved" as const,
-      location: "5.7 km",
-      confidence: 88,
-    },
-  ];
+  const { data: statsData, isLoading: isLoadingStats } = useQuery<DashboardStats>({
+    queryKey: ["/api/dashboard/stats"],
+    refetchInterval: 30000,
+  });
 
-  //todo: remove mock functionality
+  const { data: eventsData, isLoading: isLoadingEvents } = useQuery<DashboardEventsResponse>({
+    queryKey: ["/api/dashboard/recent-events"],
+    refetchInterval: 30000,
+  });
+
   const mockWaveformData = Array.from({ length: 50 }, (_, i) => ({
     time: i * 2,
     voltageR: 230 + Math.sin(i * 0.5) * 20 + (Math.random() - 0.5) * 10,
@@ -67,6 +44,21 @@ export default function DashboardPage() {
     currentB: 15 + Math.sin(i * 0.5 + 4.18) * 3 + (Math.random() - 0.5) * 2,
   }));
 
+  const transformedEvents = eventsData?.events.map((event) => ({
+    id: event.id,
+    feederName: event.feederName || "Unknown Feeder",
+    feederCode: event.feederCode || "N/A",
+    detectedAt: event.detectedAt ? formatDistanceToNow(new Date(event.detectedAt), { addSuffix: true }) : "Unknown",
+    severity: (event.severity || "low") as "critical" | "high" | "medium" | "low",
+    status: (event.status || "detected") as "detected" | "acknowledged" | "crew_dispatched" | "resolved",
+    location: event.estimatedLocationKm ? `${event.estimatedLocationKm} km` : "Unknown",
+    confidence: event.confidenceScore ? Math.round(Number(event.confidenceScore) * 100) : 0,
+  })) || [];
+
+  const uptimePercentage = statsData?.totalFeeders && statsData?.healthyFeeders
+    ? ((statsData.healthyFeeders / statsData.totalFeeders) * 100).toFixed(1)
+    : "0";
+
   return (
     <div className="space-y-6">
       <div>
@@ -75,40 +67,58 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Active Events"
-          value={mockStats.activeEvents}
-          icon={AlertCircle}
-          severity="critical"
-          trend={{ value: "3 from last hour", isPositive: false }}
-        />
-        <StatCard
-          title="Healthy Feeders"
-          value={mockStats.healthyFeeders}
-          icon={CheckCircle}
-          severity="normal"
-          trend={{ value: "98.6% uptime", isPositive: true }}
-        />
-        <StatCard
-          title="Active Alerts"
-          value={mockStats.activeAlerts}
-          icon={Activity}
-          severity="high"
-        />
-        <StatCard
-          title="Avg Response Time"
-          value={mockStats.avgResponseTime}
-          icon={Clock}
-          severity="medium"
-          trend={{ value: "2 min improvement", isPositive: true }}
-        />
+        {isLoadingStats ? (
+          <>
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="space-y-3">
+                <Skeleton className="h-32 w-full" />
+              </div>
+            ))}
+          </>
+        ) : (
+          <>
+            <StatCard
+              title="Active Events"
+              value={statsData?.activeEvents || 0}
+              icon={AlertCircle}
+              severity="critical"
+              data-testid="stat-active-events"
+            />
+            <StatCard
+              title="Healthy Feeders"
+              value={statsData?.healthyFeeders || 0}
+              icon={CheckCircle}
+              severity="normal"
+              trend={{ value: `${uptimePercentage}% uptime`, isPositive: true }}
+              data-testid="stat-healthy-feeders"
+            />
+            <StatCard
+              title="Active Alerts"
+              value={statsData?.activeAlerts || 0}
+              icon={Activity}
+              severity="high"
+              data-testid="stat-active-alerts"
+            />
+            <StatCard
+              title="Avg Response Time"
+              value={statsData?.avgResponseTime || "N/A"}
+              icon={Clock}
+              severity="medium"
+              data-testid="stat-response-time"
+            />
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <EventFeed
-          events={mockEvents}
-          onViewEvent={(id) => console.log("View event:", id)}
-        />
+        {isLoadingEvents ? (
+          <Skeleton className="h-[600px] w-full" />
+        ) : (
+          <EventFeed
+            events={transformedEvents}
+            onViewEvent={(id) => console.log("View event:", id)}
+          />
+        )}
         <WaveformChart
           data={mockWaveformData}
           title="Recent Waveform Analysis - TVM-NF-001"

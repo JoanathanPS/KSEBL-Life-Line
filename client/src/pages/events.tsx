@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import EventsTable from "@/components/EventsTable";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,65 +11,76 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, Filter } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { LineBreakEvent } from "@shared/schema";
+import { format } from "date-fns";
+
+interface EventsResponse {
+  events: (LineBreakEvent & { feederName?: string; feederCode?: string })[];
+}
 
 export default function EventsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
+  const { toast } = useToast();
 
-  //todo: remove mock functionality
-  const mockEvents = [
-    {
-      id: "1",
-      feederCode: "TVM-NF-001",
-      feederName: "Thiruvananthapuram North Feeder",
-      detectedAt: "2024-10-04 14:23:15",
-      severity: "critical" as const,
-      status: "detected" as const,
-      location: "12.5 km",
-      confidence: 94,
+  const { data: eventsData, isLoading } = useQuery<EventsResponse>({
+    queryKey: ["/api/events"],
+    refetchInterval: 15000,
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const response = await apiRequest("PATCH", `/api/events/${id}`, { status });
+      return response.json();
     },
-    {
-      id: "2",
-      feederCode: "KOC-IZ-042",
-      feederName: "Kochi Industrial Zone",
-      detectedAt: "2024-10-04 14:08:42",
-      severity: "high" as const,
-      status: "acknowledged" as const,
-      location: "8.3 km",
-      confidence: 87,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      toast({
+        title: "Success",
+        description: "Event status updated successfully",
+      });
     },
-    {
-      id: "3",
-      feederCode: "KZD-UA-018",
-      feederName: "Kozhikode Urban Area",
-      detectedAt: "2024-10-04 13:15:30",
-      severity: "medium" as const,
-      status: "crew_dispatched" as const,
-      location: "15.2 km",
-      confidence: 91,
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to update event status",
+      });
     },
-    {
-      id: "4",
-      feederCode: "PKD-RZ-025",
-      feederName: "Palakkad Rural Zone",
-      detectedAt: "2024-10-04 12:45:18",
-      severity: "low" as const,
-      status: "resolved" as const,
-      location: "5.7 km",
-      confidence: 88,
-    },
-    {
-      id: "5",
-      feederCode: "MLM-CT-033",
-      feederName: "Malappuram City Center",
-      detectedAt: "2024-10-04 11:30:05",
-      severity: "high" as const,
-      status: "crew_dispatched" as const,
-      location: "9.2 km",
-      confidence: 92,
-    },
-  ];
+  });
+
+  const transformedEvents = useMemo(() => {
+    return (eventsData?.events || []).map((event) => ({
+      id: event.id,
+      feederCode: event.feederCode || "N/A",
+      feederName: event.feederName || "Unknown Feeder",
+      detectedAt: event.detectedAt ? format(new Date(event.detectedAt), "yyyy-MM-dd HH:mm:ss") : "Unknown",
+      severity: (event.severity || "low") as "critical" | "high" | "medium" | "low",
+      status: (event.status || "detected") as "detected" | "acknowledged" | "crew_dispatched" | "resolved",
+      location: event.estimatedLocationKm ? `${event.estimatedLocationKm} km` : "Unknown",
+      confidence: event.confidenceScore ? Math.round(Number(event.confidenceScore) * 100) : 0,
+    }));
+  }, [eventsData]);
+
+  const filteredEvents = useMemo(() => {
+    return transformedEvents.filter((event) => {
+      const matchesSearch = searchQuery
+        ? event.feederCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          event.feederName.toLowerCase().includes(searchQuery.toLowerCase())
+        : true;
+      const matchesStatus = statusFilter === "all" || event.status === statusFilter;
+      const matchesSeverity = severityFilter === "all" || event.severity === severityFilter;
+      return matchesSearch && matchesStatus && matchesSeverity;
+    });
+  }, [transformedEvents, searchQuery, statusFilter, severityFilter]);
+
+  const handleAssignCrew = (id: string) => {
+    updateStatusMutation.mutate({ id, status: "crew_dispatched" });
+  };
 
   return (
     <div className="space-y-6">
@@ -112,17 +124,17 @@ export default function EventsPage() {
             <SelectItem value="low">Low</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" data-testid="button-filter">
-          <Filter className="w-4 h-4 mr-2" />
-          Filter
-        </Button>
       </div>
 
-      <EventsTable
-        events={mockEvents}
-        onViewEvent={(id) => console.log("View event:", id)}
-        onAssignCrew={(id) => console.log("Assign crew to event:", id)}
-      />
+      {isLoading ? (
+        <Skeleton className="h-[400px] w-full" />
+      ) : (
+        <EventsTable
+          events={filteredEvents}
+          onViewEvent={(id) => console.log("View event:", id)}
+          onAssignCrew={handleAssignCrew}
+        />
+      )}
     </div>
   );
 }

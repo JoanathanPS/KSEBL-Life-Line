@@ -1,32 +1,79 @@
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import WaveformChart from "@/components/WaveformChart";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 import { Download, RefreshCw } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Feeder, WaveformData } from "@shared/schema";
+
+interface FeedersResponse {
+  feeders: Feeder[];
+}
+
+interface WaveformsResponse {
+  waveforms: WaveformData[];
+}
 
 export default function WaveformsPage() {
-  const [selectedFeeder, setSelectedFeeder] = useState("TVM-NF-001");
+  const [selectedFeederId, setSelectedFeederId] = useState<string>("");
   const [selectedType, setSelectedType] = useState<"voltage" | "current" | "both">("voltage");
 
-  //todo: remove mock functionality
-  const generateWaveformData = () => {
-    return Array.from({ length: 100 }, (_, i) => ({
-      time: i * 1,
-      voltageR: 230 + Math.sin(i * 0.3) * 25 + (Math.random() - 0.5) * 15,
-      voltageY: 230 + Math.sin(i * 0.3 + 2.09) * 25 + (Math.random() - 0.5) * 15,
-      voltageB: 230 + Math.sin(i * 0.3 + 4.18) * 25 + (Math.random() - 0.5) * 15,
-      currentR: 20 + Math.sin(i * 0.3) * 5 + (Math.random() - 0.5) * 3,
-      currentY: 20 + Math.sin(i * 0.3 + 2.09) * 5 + (Math.random() - 0.5) * 3,
-      currentB: 20 + Math.sin(i * 0.3 + 4.18) * 5 + (Math.random() - 0.5) * 3,
-    }));
-  };
+  const { data: feedersData } = useQuery<FeedersResponse>({
+    queryKey: ["/api/feeders"],
+  });
 
-  const [waveformData, setWaveformData] = useState(generateWaveformData());
+  const feeders = feedersData?.feeders || [];
+  const selectedFeeder = feeders.find(f => f.id === selectedFeederId) || feeders[0];
+  
+  if (!selectedFeederId && feeders.length > 0) {
+    setSelectedFeederId(feeders[0].id);
+  }
+
+  const { data: waveformsData, isLoading, refetch } = useQuery<WaveformsResponse>({
+    queryKey: ["/api/waveforms", selectedFeederId],
+    enabled: !!selectedFeederId,
+    refetchInterval: 10000,
+  });
+
+  const latestWaveform = waveformsData?.waveforms?.[0];
+
+  const transformedWaveformData = useMemo(() => {
+    if (!latestWaveform) {
+      return Array.from({ length: 100 }, (_, i) => ({
+        time: i * 1,
+        voltageR: 230 + Math.sin(i * 0.3) * 25 + (Math.random() - 0.5) * 15,
+        voltageY: 230 + Math.sin(i * 0.3 + 2.09) * 25 + (Math.random() - 0.5) * 15,
+        voltageB: 230 + Math.sin(i * 0.3 + 4.18) * 25 + (Math.random() - 0.5) * 15,
+        currentR: 20 + Math.sin(i * 0.3) * 5 + (Math.random() - 0.5) * 3,
+        currentY: 20 + Math.sin(i * 0.3 + 2.09) * 5 + (Math.random() - 0.5) * 3,
+        currentB: 20 + Math.sin(i * 0.3 + 4.18) * 5 + (Math.random() - 0.5) * 3,
+      }));
+    }
+
+    const voltageR = latestWaveform.voltageR || [];
+    const voltageY = latestWaveform.voltageY || [];
+    const voltageB = latestWaveform.voltageB || [];
+    const currentR = latestWaveform.currentR || [];
+    const currentY = latestWaveform.currentY || [];
+    const currentB = latestWaveform.currentB || [];
+
+    const length = Math.max(voltageR.length, currentR.length, 100);
+
+    return Array.from({ length }, (_, i) => ({
+      time: i,
+      voltageR: parseFloat(voltageR[i]) || 0,
+      voltageY: parseFloat(voltageY[i]) || 0,
+      voltageB: parseFloat(voltageB[i]) || 0,
+      currentR: parseFloat(currentR[i]) || 0,
+      currentY: parseFloat(currentY[i]) || 0,
+      currentB: parseFloat(currentB[i]) || 0,
+    }));
+  }, [latestWaveform]);
 
   const handleRefresh = () => {
-    console.log("Refreshing waveform data");
-    setWaveformData(generateWaveformData());
+    refetch();
   };
 
   return (
@@ -40,15 +87,16 @@ export default function WaveformsPage() {
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="flex-1">
             <label className="text-sm font-medium mb-2 block">Feeder</label>
-            <Select value={selectedFeeder} onValueChange={setSelectedFeeder}>
+            <Select value={selectedFeederId} onValueChange={setSelectedFeederId}>
               <SelectTrigger data-testid="select-feeder">
-                <SelectValue />
+                <SelectValue placeholder="Select a feeder" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="TVM-NF-001">TVM-NF-001 - Thiruvananthapuram North</SelectItem>
-                <SelectItem value="KOC-IZ-042">KOC-IZ-042 - Kochi Industrial Zone</SelectItem>
-                <SelectItem value="KZD-UA-018">KZD-UA-018 - Kozhikode Urban Area</SelectItem>
-                <SelectItem value="PKD-RZ-025">PKD-RZ-025 - Palakkad Rural Zone</SelectItem>
+                {feeders.map((feeder) => (
+                  <SelectItem key={feeder.id} value={feeder.id}>
+                    {feeder.code} - {feeder.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -77,7 +125,15 @@ export default function WaveformsPage() {
           </div>
         </div>
 
-        <WaveformChart data={waveformData} title={`Waveform - ${selectedFeeder}`} type={selectedType} />
+        {isLoading ? (
+          <Skeleton className="h-[400px] w-full" />
+        ) : (
+          <WaveformChart 
+            data={transformedWaveformData} 
+            title={`Waveform - ${selectedFeeder?.code || 'N/A'}`} 
+            type={selectedType} 
+          />
+        )}
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -86,15 +142,27 @@ export default function WaveformsPage() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">R Phase Avg</span>
-              <span className="font-mono">232.5 V</span>
+              <span className="font-mono">
+                {transformedWaveformData.length > 0
+                  ? `${(transformedWaveformData.reduce((sum, d) => sum + d.voltageR, 0) / transformedWaveformData.length).toFixed(1)} V`
+                  : "N/A"}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Y Phase Avg</span>
-              <span className="font-mono">231.8 V</span>
+              <span className="font-mono">
+                {transformedWaveformData.length > 0
+                  ? `${(transformedWaveformData.reduce((sum, d) => sum + d.voltageY, 0) / transformedWaveformData.length).toFixed(1)} V`
+                  : "N/A"}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">B Phase Avg</span>
-              <span className="font-mono">233.1 V</span>
+              <span className="font-mono">
+                {transformedWaveformData.length > 0
+                  ? `${(transformedWaveformData.reduce((sum, d) => sum + d.voltageB, 0) / transformedWaveformData.length).toFixed(1)} V`
+                  : "N/A"}
+              </span>
             </div>
           </div>
         </Card>
@@ -104,15 +172,27 @@ export default function WaveformsPage() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">R Phase Avg</span>
-              <span className="font-mono">20.2 A</span>
+              <span className="font-mono">
+                {transformedWaveformData.length > 0
+                  ? `${(transformedWaveformData.reduce((sum, d) => sum + d.currentR, 0) / transformedWaveformData.length).toFixed(1)} A`
+                  : "N/A"}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Y Phase Avg</span>
-              <span className="font-mono">19.8 A</span>
+              <span className="font-mono">
+                {transformedWaveformData.length > 0
+                  ? `${(transformedWaveformData.reduce((sum, d) => sum + d.currentY, 0) / transformedWaveformData.length).toFixed(1)} A`
+                  : "N/A"}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">B Phase Avg</span>
-              <span className="font-mono">20.5 A</span>
+              <span className="font-mono">
+                {transformedWaveformData.length > 0
+                  ? `${(transformedWaveformData.reduce((sum, d) => sum + d.currentB, 0) / transformedWaveformData.length).toFixed(1)} A`
+                  : "N/A"}
+              </span>
             </div>
           </div>
         </Card>
@@ -122,15 +202,15 @@ export default function WaveformsPage() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Status</span>
-              <span className="text-severity-normal font-medium">Normal</span>
+              <span className="text-severity-normal font-medium">{latestWaveform?.label || "Normal"}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Confidence</span>
-              <span className="font-mono">97.3%</span>
+              <span className="text-muted-foreground">Sample Rate</span>
+              <span className="font-mono">{latestWaveform?.samplingRate ? `${latestWaveform.samplingRate} Hz` : "N/A"}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Last Check</span>
-              <span className="font-mono">2s ago</span>
+              <span className="text-muted-foreground">Duration</span>
+              <span className="font-mono">{latestWaveform?.durationSeconds ? `${latestWaveform.durationSeconds}s` : "N/A"}</span>
             </div>
           </div>
         </Card>
