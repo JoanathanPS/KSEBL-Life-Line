@@ -925,6 +925,923 @@
             );
         };
 
+        // Events Page Component
+        const EventsPage = () => {
+            const [events, setEvents] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [filter, setFilter] = useState('all');
+            const [searchTerm, setSearchTerm] = useState('');
+
+            useEffect(() => {
+                loadEvents();
+            }, []);
+
+            const loadEvents = async () => {
+                try {
+                    setLoading(true);
+                    const response = await apiClient.get('/events');
+                    
+                    if (response.success) {
+                        setEvents(response.data.events || []);
+                    } else {
+                        // Mock data
+                        setEvents([
+                            {
+                                id: 'EVT-001',
+                                feederName: 'TVM-CENTRAL-F01',
+                                substation: 'Thiruvananthapuram 132kV',
+                                detectedAt: new Date().toISOString(),
+                                status: 'detected',
+                                severity: 'critical',
+                                estimatedLocationKm: 2.5,
+                                confidence: 0.95,
+                                assignedTo: null,
+                                resolutionNotes: null
+                            },
+                            {
+                                id: 'EVT-002',
+                                feederName: 'KCH-URBAN-F03',
+                                substation: 'Kochi 220kV',
+                                detectedAt: new Date(Date.now() - 3600000).toISOString(),
+                                status: 'acknowledged',
+                                severity: 'high',
+                                estimatedLocationKm: 1.8,
+                                confidence: 0.87,
+                                assignedTo: 'John Doe',
+                                resolutionNotes: null
+                            },
+                            {
+                                id: 'EVT-003',
+                                feederName: 'TSR-INDUSTRIAL-F02',
+                                substation: 'Thrissur 132kV',
+                                detectedAt: new Date(Date.now() - 7200000).toISOString(),
+                                status: 'resolved',
+                                severity: 'medium',
+                                estimatedLocationKm: 3.2,
+                                confidence: 0.78,
+                                assignedTo: 'Jane Smith',
+                                resolutionNotes: 'Line repaired, power restored'
+                            }
+                        ]);
+                    }
+                } catch (err) {
+                    console.error('Failed to load events:', err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const filteredEvents = events.filter(event => {
+                const matchesFilter = filter === 'all' || event.status === filter;
+                const matchesSearch = event.feederName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                   event.substation.toLowerCase().includes(searchTerm.toLowerCase());
+                return matchesFilter && matchesSearch;
+            });
+
+            const getStatusColor = (status) => {
+                switch (status) {
+                    case 'detected': return 'bg-red-100 text-red-800';
+                    case 'acknowledged': return 'bg-yellow-100 text-yellow-800';
+                    case 'crew_dispatched': return 'bg-blue-100 text-blue-800';
+                    case 'resolved': return 'bg-green-100 text-green-800';
+                    default: return 'bg-gray-100 text-gray-800';
+                }
+            };
+
+            const getSeverityColor = (severity) => {
+                switch (severity) {
+                    case 'critical': return 'bg-red-600 text-white';
+                    case 'high': return 'bg-orange-500 text-white';
+                    case 'medium': return 'bg-yellow-400 text-gray-800';
+                    case 'low': return 'bg-green-500 text-white';
+                    default: return 'bg-gray-500 text-white';
+                }
+            };
+
+            if (loading) {
+                return <LoadingSpinner />;
+            }
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+                    <div className="max-w-7xl mx-auto">
+                        {/* Header */}
+                        <div className="mb-8">
+                            <h1 className="text-3xl font-bold gradient-text mb-2">Events Management</h1>
+                            <p className="text-gray-600">Monitor and manage line break events across Kerala</p>
+                        </div>
+
+                        {/* Filters */}
+                        <div className="card p-6 mb-6">
+                            <div className="flex flex-col md:flex-row gap-4">
+                                <div className="flex-1">
+                                    <input
+                                        type="text"
+                                        placeholder="Search events..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+                                <div className="flex gap-2">
+                                    {['all', 'detected', 'acknowledged', 'crew_dispatched', 'resolved'].map(status => (
+                                        <button
+                                            key={status}
+                                            onClick={() => setFilter(status)}
+                                            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                                                filter === status
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
+                                        >
+                                            {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Events Table */}
+                        <div className="card overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Substation</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Detected</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {filteredEvents.map(event => (
+                                            <tr key={event.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div>
+                                                        <div className="text-sm font-medium text-gray-900">{event.feederName}</div>
+                                                        <div className="text-sm text-gray-500">ID: {event.id}</div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{event.substation}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {new Date(event.detectedAt).toLocaleString()}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(event.status)}`}>
+                                                        {event.status.replace('_', ' ')}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSeverityColor(event.severity)}`}>
+                                                        {event.severity}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {event.estimatedLocationKm} km
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                    <div className="flex gap-2">
+                                                        {event.status === 'detected' && (
+                                                            <button className="btn btn-primary text-xs">
+                                                                <i className="fas fa-check"></i>
+                                                                Acknowledge
+                                                            </button>
+                                                        )}
+                                                        {event.status === 'acknowledged' && (
+                                                            <button className="btn btn-success text-xs">
+                                                                <i className="fas fa-tools"></i>
+                                                                Dispatch
+                                                            </button>
+                                                        )}
+                                                        <button className="btn btn-primary text-xs">
+                                                            <i className="fas fa-eye"></i>
+                                                            View
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Substations Page Component
+        const SubstationsPage = () => {
+            const [substations, setSubstations] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                loadSubstations();
+            }, []);
+
+            const loadSubstations = async () => {
+                try {
+                    setLoading(true);
+                    const response = await apiClient.get('/substations');
+                    
+                    if (response.success) {
+                        setSubstations(response.data.substations || []);
+                    } else {
+                        // Mock data
+                        setSubstations([
+                            {
+                                id: 'SS-001',
+                                name: 'Thiruvananthapuram 132kV',
+                                code: 'TVM-132',
+                                district: 'Thiruvananthapuram',
+                                voltageLevel: '132kV',
+                                capacityMva: 50,
+                                status: 'operational',
+                                lat: 8.5241,
+                                lng: 76.9361,
+                                feeders: 12,
+                                lastMaintenance: '2024-01-15'
+                            },
+                            {
+                                id: 'SS-002',
+                                name: 'Kochi 220kV',
+                                code: 'KCH-220',
+                                district: 'Ernakulam',
+                                voltageLevel: '220kV',
+                                capacityMva: 100,
+                                status: 'operational',
+                                lat: 10.0168,
+                                lng: 76.3418,
+                                feeders: 18,
+                                lastMaintenance: '2024-02-10'
+                            },
+                            {
+                                id: 'SS-003',
+                                name: 'Thrissur 132kV',
+                                code: 'TSR-132',
+                                district: 'Thrissur',
+                                voltageLevel: '132kV',
+                                capacityMva: 75,
+                                status: 'maintenance',
+                                lat: 10.5276,
+                                lng: 76.2144,
+                                feeders: 15,
+                                lastMaintenance: '2024-03-01'
+                            }
+                        ]);
+                    }
+                } catch (err) {
+                    console.error('Failed to load substations:', err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const getStatusColor = (status) => {
+                switch (status) {
+                    case 'operational': return 'bg-green-100 text-green-800';
+                    case 'maintenance': return 'bg-yellow-100 text-yellow-800';
+                    case 'offline': return 'bg-red-100 text-red-800';
+                    default: return 'bg-gray-100 text-gray-800';
+                }
+            };
+
+            if (loading) {
+                return <LoadingSpinner />;
+            }
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+                    <div className="max-w-7xl mx-auto">
+                        {/* Header */}
+                        <div className="mb-8">
+                            <h1 className="text-3xl font-bold gradient-text mb-2">Substations</h1>
+                            <p className="text-gray-600">Manage and monitor electrical substations across Kerala</p>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                            <div className="metric-card">
+                                <div className="metric-value text-blue-600">{substations.length}</div>
+                                <div className="metric-label">Total Substations</div>
+                            </div>
+                            <div className="metric-card">
+                                <div className="metric-value text-green-600">
+                                    {substations.filter(s => s.status === 'operational').length}
+                                </div>
+                                <div className="metric-label">Operational</div>
+                            </div>
+                            <div className="metric-card">
+                                <div className="metric-value text-yellow-600">
+                                    {substations.filter(s => s.status === 'maintenance').length}
+                                </div>
+                                <div className="metric-label">Under Maintenance</div>
+                            </div>
+                            <div className="metric-card">
+                                <div className="metric-value text-purple-600">
+                                    {substations.reduce((sum, s) => sum + s.feeders, 0)}
+                                </div>
+                                <div className="metric-label">Total Feeders</div>
+                            </div>
+                        </div>
+
+                        {/* Substations Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {substations.map(substation => (
+                                <div key={substation.id} className="card p-6 hover:shadow-lg transition-shadow">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div>
+                                            <h3 className="text-lg font-bold text-gray-900 mb-1">{substation.name}</h3>
+                                            <p className="text-sm text-gray-600">{substation.code}</p>
+                                        </div>
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(substation.status)}`}>
+                                            {substation.status}
+                                        </span>
+                                    </div>
+                                    
+                                    <div className="space-y-2 mb-4">
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">District:</span>
+                                            <span className="text-sm font-medium">{substation.district}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">Voltage:</span>
+                                            <span className="text-sm font-medium">{substation.voltageLevel}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">Capacity:</span>
+                                            <span className="text-sm font-medium">{substation.capacityMva} MVA</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">Feeders:</span>
+                                            <span className="text-sm font-medium">{substation.feeders}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <button className="btn btn-primary text-xs flex-1">
+                                            <i className="fas fa-eye"></i>
+                                            View Details
+                                        </button>
+                                        <button className="btn btn-primary text-xs">
+                                            <i className="fas fa-map-marker-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Feeders Page Component
+        const FeedersPage = () => {
+            const [feeders, setFeeders] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                loadFeeders();
+            }, []);
+
+            const loadFeeders = async () => {
+                try {
+                    setLoading(true);
+                    const response = await apiClient.get('/feeders');
+                    
+                    if (response.success) {
+                        setFeeders(response.data.feeders || []);
+                    } else {
+                        // Mock data
+                        setFeeders([
+                            {
+                                id: 'F-001',
+                                name: 'TVM-CENTRAL-F01',
+                                substation: 'Thiruvananthapuram 132kV',
+                                lengthKm: 8.5,
+                                conductorType: 'ACSR 150mm²',
+                                typicalLoadKw: 2500,
+                                numConsumers: 1250,
+                                areaType: 'urban',
+                                status: 'active',
+                                lastInspection: '2024-01-20'
+                            },
+                            {
+                                id: 'F-002',
+                                name: 'KCH-URBAN-F03',
+                                substation: 'Kochi 220kV',
+                                lengthKm: 12.3,
+                                conductorType: 'ACSR 200mm²',
+                                typicalLoadKw: 3200,
+                                numConsumers: 1800,
+                                areaType: 'urban',
+                                status: 'active',
+                                lastInspection: '2024-02-15'
+                            },
+                            {
+                                id: 'F-003',
+                                name: 'TSR-INDUSTRIAL-F02',
+                                substation: 'Thrissur 132kV',
+                                lengthKm: 15.7,
+                                conductorType: 'ACSR 300mm²',
+                                typicalLoadKw: 4500,
+                                numConsumers: 2200,
+                                areaType: 'industrial',
+                                status: 'maintenance',
+                                lastInspection: '2024-03-01'
+                            }
+                        ]);
+                    }
+                } catch (err) {
+                    console.error('Failed to load feeders:', err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const getStatusColor = (status) => {
+                switch (status) {
+                    case 'active': return 'bg-green-100 text-green-800';
+                    case 'maintenance': return 'bg-yellow-100 text-yellow-800';
+                    case 'offline': return 'bg-red-100 text-red-800';
+                    default: return 'bg-gray-100 text-gray-800';
+                }
+            };
+
+            const getAreaTypeColor = (areaType) => {
+                switch (areaType) {
+                    case 'urban': return 'bg-blue-100 text-blue-800';
+                    case 'rural': return 'bg-green-100 text-green-800';
+                    case 'industrial': return 'bg-purple-100 text-purple-800';
+                    default: return 'bg-gray-100 text-gray-800';
+                }
+            };
+
+            if (loading) {
+                return <LoadingSpinner />;
+            }
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+                    <div className="max-w-7xl mx-auto">
+                        {/* Header */}
+                        <div className="mb-8">
+                            <h1 className="text-3xl font-bold gradient-text mb-2">Feeders</h1>
+                            <p className="text-gray-600">Manage electrical feeders and distribution lines</p>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                            <div className="metric-card">
+                                <div className="metric-value text-blue-600">{feeders.length}</div>
+                                <div className="metric-label">Total Feeders</div>
+                            </div>
+                            <div className="metric-card">
+                                <div className="metric-value text-green-600">
+                                    {feeders.filter(f => f.status === 'active').length}
+                                </div>
+                                <div className="metric-label">Active</div>
+                            </div>
+                            <div className="metric-card">
+                                <div className="metric-value text-yellow-600">
+                                    {feeders.filter(f => f.status === 'maintenance').length}
+                                </div>
+                                <div className="metric-label">Under Maintenance</div>
+                            </div>
+                            <div className="metric-card">
+                                <div className="metric-value text-purple-600">
+                                    {feeders.reduce((sum, f) => sum + f.numConsumers, 0).toLocaleString()}
+                                </div>
+                                <div className="metric-label">Total Consumers</div>
+                            </div>
+                        </div>
+
+                        {/* Feeders Table */}
+                        <div className="card overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Feeder</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Substation</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Length</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Load</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Consumers</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Area Type</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {feeders.map(feeder => (
+                                            <tr key={feeder.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div>
+                                                        <div className="text-sm font-medium text-gray-900">{feeder.name}</div>
+                                                        <div className="text-sm text-gray-500">{feeder.conductorType}</div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{feeder.substation}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{feeder.lengthKm} km</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{feeder.typicalLoadKw} kW</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{feeder.numConsumers.toLocaleString()}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getAreaTypeColor(feeder.areaType)}`}>
+                                                        {feeder.areaType}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(feeder.status)}`}>
+                                                        {feeder.status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                    <div className="flex gap-2">
+                                                        <button className="btn btn-primary text-xs">
+                                                            <i className="fas fa-eye"></i>
+                                                            View
+                                                        </button>
+                                                        <button className="btn btn-primary text-xs">
+                                                            <i className="fas fa-edit"></i>
+                                                            Edit
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Analytics Page Component
+        const AnalyticsPage = () => {
+            const [analytics, setAnalytics] = useState(null);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                loadAnalytics();
+            }, []);
+
+            const loadAnalytics = async () => {
+                try {
+                    setLoading(true);
+                    const response = await apiClient.get('/analytics/performance');
+                    
+                    if (response.success) {
+                        setAnalytics(response.data);
+                    } else {
+                        // Mock data
+                        setAnalytics({
+                            modelPerformance: {
+                                accuracy: 0.9687,
+                                precision: 0.9523,
+                                recall: 0.9841,
+                                f1Score: 0.9680,
+                                falsePositiveRate: 0.018
+                            },
+                            detectionStats: {
+                                totalDetections: 1247,
+                                correctDetections: 1208,
+                                falsePositives: 23,
+                                falseNegatives: 16,
+                                avgDetectionTime: 185
+                            },
+                            trends: {
+                                dailyEvents: [12, 8, 15, 22, 18, 25, 19, 14, 21, 16, 13, 17],
+                                monthlyAccuracy: [0.95, 0.96, 0.97, 0.96, 0.98, 0.97, 0.96, 0.98, 0.97, 0.96, 0.97, 0.97],
+                                responseTimes: [15.2, 12.8, 14.1, 11.5, 13.7, 10.9, 12.3, 14.6, 11.8, 13.2, 12.1, 13.9]
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.error('Failed to load analytics:', err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            if (loading) {
+                return <LoadingSpinner />;
+            }
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+                    <div className="max-w-7xl mx-auto">
+                        {/* Header */}
+                        <div className="mb-8">
+                            <h1 className="text-3xl font-bold gradient-text mb-2">Analytics & Performance</h1>
+                            <p className="text-gray-600">Monitor AI model performance and system analytics</p>
+                        </div>
+
+                        {/* Performance Metrics */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                            <div className="metric-card">
+                                <div className="metric-value text-green-600">
+                                    {(analytics.modelPerformance.accuracy * 100).toFixed(1)}%
+                                </div>
+                                <div className="metric-label">Model Accuracy</div>
+                            </div>
+                            <div className="metric-card">
+                                <div className="metric-value text-blue-600">
+                                    {(analytics.modelPerformance.precision * 100).toFixed(1)}%
+                                </div>
+                                <div className="metric-label">Precision</div>
+                            </div>
+                            <div className="metric-card">
+                                <div className="metric-value text-purple-600">
+                                    {(analytics.modelPerformance.recall * 100).toFixed(1)}%
+                                </div>
+                                <div className="metric-label">Recall</div>
+                            </div>
+                            <div className="metric-card">
+                                <div className="metric-value text-orange-600">
+                                    {analytics.detectionStats.avgDetectionTime}ms
+                                </div>
+                                <div className="metric-label">Avg Detection Time</div>
+                            </div>
+                        </div>
+
+                        {/* Charts Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                            {/* Daily Events Chart */}
+                            <div className="card p-6">
+                                <h3 className="text-lg font-bold text-gray-900 mb-4">Daily Events Trend</h3>
+                                <div className="h-64 flex items-end justify-between gap-2">
+                                    {analytics.trends.dailyEvents.map((value, index) => (
+                                        <div key={index} className="flex flex-col items-center">
+                                            <div 
+                                                className="bg-blue-500 rounded-t w-8 transition-all duration-500 hover:bg-blue-600"
+                                                style={{ height: `${(value / 25) * 200}px` }}
+                                            ></div>
+                                            <span className="text-xs text-gray-500 mt-2">Day {index + 1}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Accuracy Trend */}
+                            <div className="card p-6">
+                                <h3 className="text-lg font-bold text-gray-900 mb-4">Monthly Accuracy</h3>
+                                <div className="h-64 flex items-end justify-between gap-2">
+                                    {analytics.trends.monthlyAccuracy.map((value, index) => (
+                                        <div key={index} className="flex flex-col items-center">
+                                            <div 
+                                                className="bg-green-500 rounded-t w-8 transition-all duration-500 hover:bg-green-600"
+                                                style={{ height: `${(value - 0.9) * 2000}px` }}
+                                            ></div>
+                                            <span className="text-xs text-gray-500 mt-2">M{index + 1}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Detection Statistics */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            <div className="card p-6 text-center">
+                                <div className="text-3xl font-bold text-green-600 mb-2">
+                                    {analytics.detectionStats.correctDetections}
+                                </div>
+                                <div className="text-sm text-gray-600">Correct Detections</div>
+                            </div>
+                            <div className="card p-6 text-center">
+                                <div className="text-3xl font-bold text-red-600 mb-2">
+                                    {analytics.detectionStats.falsePositives}
+                                </div>
+                                <div className="text-sm text-gray-600">False Positives</div>
+                            </div>
+                            <div className="card p-6 text-center">
+                                <div className="text-3xl font-bold text-orange-600 mb-2">
+                                    {analytics.detectionStats.falseNegatives}
+                                </div>
+                                <div className="text-sm text-gray-600">False Negatives</div>
+                            </div>
+                        </div>
+
+                        {/* Model Performance Details */}
+                        <div className="card p-6">
+                            <h3 className="text-lg font-bold text-gray-900 mb-6">Model Performance Details</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <h4 className="font-semibold text-gray-700 mb-3">Confusion Matrix</h4>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">True Positives:</span>
+                                            <span className="font-medium">{analytics.detectionStats.correctDetections}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">False Positives:</span>
+                                            <span className="font-medium text-red-600">{analytics.detectionStats.falsePositives}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">False Negatives:</span>
+                                            <span className="font-medium text-orange-600">{analytics.detectionStats.falseNegatives}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 className="font-semibold text-gray-700 mb-3">Performance Metrics</h4>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">F1 Score:</span>
+                                            <span className="font-medium">{(analytics.modelPerformance.f1Score * 100).toFixed(1)}%</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">False Positive Rate:</span>
+                                            <span className="font-medium">{(analytics.modelPerformance.falsePositiveRate * 100).toFixed(2)}%</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-600">Total Detections:</span>
+                                            <span className="font-medium">{analytics.detectionStats.totalDetections}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Settings Page Component
+        const SettingsPage = () => {
+            const [settings, setSettings] = useState({
+                notifications: {
+                    email: true,
+                    sms: true,
+                    push: false
+                },
+                alerts: {
+                    critical: true,
+                    high: true,
+                    medium: false,
+                    low: false
+                },
+                system: {
+                    autoRefresh: true,
+                    refreshInterval: 30,
+                    theme: 'light'
+                }
+            });
+
+            const handleSettingChange = (category, key, value) => {
+                setSettings(prev => ({
+                    ...prev,
+                    [category]: {
+                        ...prev[category],
+                        [key]: value
+                    }
+                }));
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+                    <div className="max-w-4xl mx-auto">
+                        {/* Header */}
+                        <div className="mb-8">
+                            <h1 className="text-3xl font-bold gradient-text mb-2">Settings</h1>
+                            <p className="text-gray-600">Configure your KSEBL Life Line preferences</p>
+                        </div>
+
+                        <div className="space-y-6">
+                            {/* Notification Settings */}
+                            <div className="card p-6">
+                                <h3 className="text-lg font-bold text-gray-900 mb-4">Notification Preferences</h3>
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-700">Email Notifications</label>
+                                            <p className="text-sm text-gray-500">Receive alerts via email</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={settings.notifications.email}
+                                                onChange={(e) => handleSettingChange('notifications', 'email', e.target.checked)}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-700">SMS Notifications</label>
+                                            <p className="text-sm text-gray-500">Receive alerts via SMS</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={settings.notifications.sms}
+                                                onChange={(e) => handleSettingChange('notifications', 'sms', e.target.checked)}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-700">Push Notifications</label>
+                                            <p className="text-sm text-gray-500">Receive browser push notifications</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={settings.notifications.push}
+                                                onChange={(e) => handleSettingChange('notifications', 'push', e.target.checked)}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Alert Settings */}
+                            <div className="card p-6">
+                                <h3 className="text-lg font-bold text-gray-900 mb-4">Alert Severity Settings</h3>
+                                <div className="space-y-4">
+                                    {Object.entries(settings.alerts).map(([severity, enabled]) => (
+                                        <div key={severity} className="flex items-center justify-between">
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-700 capitalize">
+                                                    {severity} Priority Alerts
+                                                </label>
+                                                <p className="text-sm text-gray-500">
+                                                    Receive notifications for {severity} priority events
+                                                </p>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={enabled}
+                                                    onChange={(e) => handleSettingChange('alerts', severity, e.target.checked)}
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* System Settings */}
+                            <div className="card p-6">
+                                <h3 className="text-lg font-bold text-gray-900 mb-4">System Settings</h3>
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-700">Auto Refresh</label>
+                                            <p className="text-sm text-gray-500">Automatically refresh data</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={settings.system.autoRefresh}
+                                                onChange={(e) => handleSettingChange('system', 'autoRefresh', e.target.checked)}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                            Refresh Interval (seconds)
+                                        </label>
+                                        <select
+                                            value={settings.system.refreshInterval}
+                                            onChange={(e) => handleSettingChange('system', 'refreshInterval', parseInt(e.target.value))}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        >
+                                            <option value={10}>10 seconds</option>
+                                            <option value={30}>30 seconds</option>
+                                            <option value={60}>1 minute</option>
+                                            <option value={300}>5 minutes</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Save Button */}
+                            <div className="flex justify-end">
+                                <button className="btn btn-primary">
+                                    <i className="fas fa-save"></i>
+                                    Save Settings
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // Main App Component
         const App = () => {
             const [activeTab, setActiveTab] = useState('dashboard');
@@ -934,15 +1851,15 @@
                     case 'dashboard':
                         return <DashboardPage />;
                     case 'events':
-                        return <div className="p-8"><h1 className="text-2xl font-bold">Events Page</h1></div>;
+                        return <EventsPage />;
                     case 'substations':
-                        return <div className="p-8"><h1 className="text-2xl font-bold">Substations Page</h1></div>;
+                        return <SubstationsPage />;
                     case 'feeders':
-                        return <div className="p-8"><h1 className="text-2xl font-bold">Feeders Page</h1></div>;
+                        return <FeedersPage />;
                     case 'analytics':
-                        return <div className="p-8"><h1 className="text-2xl font-bold">Analytics Page</h1></div>;
+                        return <AnalyticsPage />;
                     case 'settings':
-                        return <div className="p-8"><h1 className="text-2xl font-bold">Settings Page</h1></div>;
+                        return <SettingsPage />;
                     default:
                         return <DashboardPage />;
                 }
