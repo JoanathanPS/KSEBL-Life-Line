@@ -1,146 +1,113 @@
-import { useLocation } from "wouter";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-
-const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
+import React, { useState } from 'react';
+import { useLocation } from 'wouter';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '../hooks/useAuth';
 
 export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
+  const { login } = useAuth();
 
-  const form = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
 
-  const loginMutation = useMutation({
-    mutationFn: async (data: LoginFormData) => {
-      const response = await apiRequest("POST", "/api/auth/login", data);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      setLocation("/");
-    },
-    onError: (error: Error) => {
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: error.message || "Invalid email or password. Please try again.",
-      });
-    },
-  });
-
-  const onSubmit = (data: LoginFormData) => {
-    loginMutation.mutate(data);
+    try {
+      await login(email, password);
+      setLocation('/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/20 to-primary/5 items-center justify-center p-12">
-        <div className="max-w-md">
-          <div className="flex items-center gap-4 mb-6">
-            <img 
-              src="/attached_assets/SIH P-1_LOGO_1759550517457.jpg" 
-              alt="KSEBL Logo" 
-              className="w-20 h-20 object-contain"
-            />
-            <div>
-              <h1 className="text-3xl font-bold">KSEBL</h1>
-              <p className="text-xl font-semibold text-primary">LIFE LINE</p>
-            </div>
-          </div>
-          <h2 className="text-3xl font-bold mb-4">Real-time Power Grid Monitoring</h2>
-          <p className="text-muted-foreground text-lg">
-            AI-powered fault detection system for Kerala State Electricity Board's LT power distribution network. 
-            Monitor grid health, detect line breaks, and coordinate field crews in real-time.
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <img 
+            src="/attached_assets/SIH P-1_LOGO_1759550517457.jpg" 
+            alt="KSEBL Logo" 
+            className="mx-auto h-16 w-auto object-contain"
+          />
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+            KSEBL Life Line
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Line Break Detection System
           </p>
         </div>
-      </div>
-      
-      <div className="flex-1 flex items-center justify-center p-8">
-        <Card className="w-full max-w-md">
+
+        <Card>
           <CardHeader>
-            <div className="flex items-center gap-3 lg:hidden mb-4">
-              <img 
-                src="/attached_assets/SIH P-1_LOGO_1759550517457.jpg" 
-                alt="KSEBL Logo" 
-                className="w-12 h-12 object-contain"
-              />
-              <div>
-                <CardTitle className="text-xl font-bold">KSEBL LIFE LINE</CardTitle>
-              </div>
-            </div>
-            <CardTitle className="text-2xl">Sign In</CardTitle>
-            <CardDescription>
-              Enter your credentials to access the monitoring dashboard
-            </CardDescription>
+            <CardTitle className="text-center">Sign in to your account</CardTitle>
           </CardHeader>
           <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <div>
+                <Label htmlFor="email">Email address</Label>
+                <Input
+                  id="email"
                   name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="operator@kerala.gov"
-                          data-testid="input-email"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-1"
+                  placeholder="Enter your email"
                 />
-                <FormField
-                  control={form.control}
+              </div>
+
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
                   name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="password"
-                          placeholder="••••••••"
-                          data-testid="input-password"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="mt-1"
+                  placeholder="Enter your password"
                 />
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  data-testid="button-login"
-                  disabled={loginMutation.isPending}
-                >
-                  {loginMutation.isPending ? "Signing In..." : "Sign In"}
-                </Button>
-              </form>
-            </Form>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? 'Signing in...' : 'Sign in'}
+              </Button>
+            </form>
+
+            <div className="mt-6">
+              <div className="text-sm text-gray-600">
+                <p className="font-medium">Demo Accounts:</p>
+                <div className="mt-2 space-y-1">
+                  <p><strong>Admin:</strong> admin@ksebl.gov.in / Admin@123</p>
+                  <p><strong>Operator:</strong> operator@ksebl.gov.in / Operator@123</p>
+                  <p><strong>Field Crew:</strong> field.crew1@ksebl.gov.in / FieldCrew@123</p>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

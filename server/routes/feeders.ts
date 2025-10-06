@@ -1,76 +1,67 @@
-import { Router } from "express";
-import { z } from "zod";
-import { storage } from "../storage";
-import { requireAuth, requireRole } from "../auth";
-import { insertFeederSchema } from "@shared/schema";
+import { Router } from 'express';
+import { db } from '../db.js';
+import { feeders, substations, lineBreakEvents } from '../../shared/schema.js';
+import { eq, sql } from 'drizzle-orm';
+import { authenticate } from '../middleware/auth.js';
+import { ApiResponse } from '../utils/ApiResponse.js';
 
 const router = Router();
 
 // Get all feeders
-router.get("/", requireAuth, async (req, res) => {
+router.get('/', authenticate, async (req, res, next) => {
   try {
-    const { substationId } = req.query;
+    const feedersData = await db
+      .select({
+        id: feeders.id,
+        name: feeders.name,
+        code: feeders.code,
+        substationId: feeders.substationId,
+        substationName: substations.name,
+        voltageLevel: feeders.voltageLevel,
+        capacityMva: feeders.capacityMva,
+        isActive: feeders.isActive,
+        activeEvents: sql<number>`count(${lineBreakEvents.id})`,
+      })
+      .from(feeders)
+      .leftJoin(substations, eq(feeders.substationId, substations.id))
+      .leftJoin(lineBreakEvents, eq(feeders.id, lineBreakEvents.feederId))
+      .where(eq(lineBreakEvents.status, 'detected'))
+      .groupBy(feeders.id);
 
-    let feeders;
-    if (substationId) {
-      feeders = await storage.getFeedersBySubstation(substationId as string);
-    } else {
-      feeders = await storage.getAllFeeders();
-    }
-
-    res.json({ feeders });
+    res.json(ApiResponse.success({ feeders: feedersData }));
   } catch (error) {
-    console.error("Error fetching feeders:", error);
-    res.status(500).json({ error: "Failed to fetch feeders" });
+    next(error);
   }
 });
 
-// Get single feeder
-router.get("/:id", requireAuth, async (req, res) => {
+// Get feeder by ID
+router.get('/:id', authenticate, async (req, res, next) => {
   try {
-    const feeder = await storage.getFeeder(req.params.id);
-    if (!feeder) {
-      return res.status(404).json({ error: "Feeder not found" });
-    }
-    res.json({ feeder });
-  } catch (error) {
-    console.error("Error fetching feeder:", error);
-    res.status(500).json({ error: "Failed to fetch feeder" });
-  }
-});
+    const { id } = req.params;
 
-// Create new feeder
-router.post("/", requireRole("admin"), async (req, res) => {
-  try {
-    const data = insertFeederSchema.parse(req.body);
-    const feeder = await storage.createFeeder(data);
-    res.status(201).json({ feeder });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: "Invalid request data", details: error.errors });
-    }
-    console.error("Error creating feeder:", error);
-    res.status(500).json({ error: "Failed to create feeder" });
-  }
-});
-
-// Update feeder
-router.patch("/:id", requireRole("admin"), async (req, res) => {
-  try {
-    const data = insertFeederSchema.partial().parse(req.body);
-    const feeder = await storage.updateFeeder(req.params.id, data);
+    const [feeder] = await db
+      .select({
+        id: feeders.id,
+        name: feeders.name,
+        code: feeders.code,
+        substationId: feeders.substationId,
+        substationName: substations.name,
+        voltageLevel: feeders.voltageLevel,
+        capacityMva: feeders.capacityMva,
+        isActive: feeders.isActive,
+      })
+      .from(feeders)
+      .leftJoin(substations, eq(feeders.substationId, substations.id))
+      .where(eq(feeders.id, id))
+      .limit(1);
 
     if (!feeder) {
-      return res.status(404).json({ error: "Feeder not found" });
+      throw ApiError.notFound('Feeder not found');
     }
 
-    res.json({ feeder });
+    res.json(ApiResponse.success({ feeder }));
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: "Invalid request data", details: error.errors });
-    }
-    console.error("Error updating feeder:", error);
-    res.status(500).json({ error: "Failed to update feeder" });
+    next(error);
   }
 });
 

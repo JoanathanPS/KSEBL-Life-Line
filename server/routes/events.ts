@@ -1,87 +1,253 @@
-import { Router } from "express";
-import { z } from "zod";
-import { storage } from "../storage";
-import { requireAuth, requireRole } from "../auth";
-import { insertLineBreakEventSchema } from "@shared/schema";
+import { Router } from 'express';
+import { db } from '../db.js';
+import { lineBreakEvents, feeders, substations, users } from '../../shared/schema.js';
+import { eq, desc, and, gte, lte } from 'drizzle-orm';
+import { authenticate, operatorOrAdmin } from '../middleware/auth.js';
+import { ApiResponse } from '../utils/ApiResponse.js';
+import { ApiError } from '../utils/ApiError.js';
+import { mlService } from '../services/mlService.js';
+import { alertService } from '../services/alertService.js';
+import { websocketService } from '../services/websocketService.js';
 
 const router = Router();
 
-// Get all events with optional filters
-router.get("/", requireAuth, async (req, res) => {
+// Get all events with pagination and filtering
+router.get('/', authenticate, async (req, res, next) => {
   try {
-    const { status, severity, feederId } = req.query;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+    const offset = (page - 1) * limit;
+    const status = req.query.status as string;
+    const severity = req.query.severity as string;
 
-    const filters: any = {};
-    if (status) filters.status = status as string;
-    if (severity) filters.severity = severity as string;
-    if (feederId) filters.feederId = feederId as string;
+    let query = db
+      .select({
+        id: lineBreakEvents.id,
+        detectedAt: lineBreakEvents.detectedAt,
+        confidenceScore: lineBreakEvents.confidenceScore,
+        estimatedLocationKm: lineBreakEvents.estimatedLocationKm,
+        faultType: lineBreakEvents.faultType,
+        severity: lineBreakEvents.severity,
+        status: lineBreakEvents.status,
+        breakerTripped: lineBreakEvents.breakerTripped,
+        tripTimeMs: lineBreakEvents.tripTimeMs,
+        resolvedAt: lineBreakEvents.resolvedAt,
+        resolutionNotes: lineBreakEvents.resolutionNotes,
+        assignedTo: lineBreakEvents.assignedTo,
+        feederName: feeders.name,
+        feederCode: feeders.code,
+        substationName: substations.name,
+        assignedUserName: users.fullName,
+      })
+      .from(lineBreakEvents)
+      .leftJoin(feeders, eq(lineBreakEvents.feederId, feeders.id))
+      .leftJoin(substations, eq(feeders.substationId, substations.id))
+      .leftJoin(users, eq(lineBreakEvents.assignedTo, users.id))
+      .orderBy(desc(lineBreakEvents.detectedAt))
+      .limit(limit)
+      .offset(offset);
 
-    const events = await storage.getAllLineBreakEvents(filters);
-    res.json({ events });
-  } catch (error) {
-    console.error("Error fetching events:", error);
-    res.status(500).json({ error: "Failed to fetch events" });
-  }
-});
-
-// Get single event
-router.get("/:id", requireAuth, async (req, res) => {
-  try {
-    const event = await storage.getLineBreakEvent(req.params.id);
-    if (!event) {
-      return res.status(404).json({ error: "Event not found" });
+    if (status) {
+      query = query.where(eq(lineBreakEvents.status, status));
     }
-    res.json({ event });
-  } catch (error) {
-    console.error("Error fetching event:", error);
-    res.status(500).json({ error: "Failed to fetch event" });
-  }
-});
-
-// Create new event
-router.post("/", requireRole("admin", "operator"), async (req, res) => {
-  try {
-    const data = insertLineBreakEventSchema.parse(req.body);
-    const event = await storage.createLineBreakEvent(data);
-    res.status(201).json({ event });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: "Invalid request data", details: error.errors });
+    if (severity) {
+      query = query.where(eq(lineBreakEvents.severity, severity));
     }
-    console.error("Error creating event:", error);
-    res.status(500).json({ error: "Failed to create event" });
+
+    const events = await query;
+    const total = await db.select().from(lineBreakEvents);
+
+    res.json(ApiResponse.paginated(
+      events,
+      page,
+      limit,
+      total.length,
+      'Events retrieved successfully'
+    ));
+  } catch (error) {
+    next(error);
   }
 });
 
-// Update event status
-router.patch("/:id", requireRole("admin", "operator"), async (req, res) => {
+// Get event by ID
+router.get('/:id', authenticate, async (req, res, next) => {
   try {
-    const updateSchema = z.object({
-      status: z.enum(["detected", "acknowledged", "crew_dispatched", "resolved"]).optional(),
-      assignedTo: z.string().uuid().optional(),
-      resolutionNotes: z.string().optional(),
-      resolvedAt: z.string().datetime().optional(),
+    const { id } = req.params;
+
+    const event = await db
+      .select({
+        id: lineBreakEvents.id,
+        detectedAt: lineBreakEvents.detectedAt,
+        confidenceScore: lineBreakEvents.confidenceScore,
+        estimatedLocationKm: lineBreakEvents.estimatedLocationKm,
+        faultType: lineBreakEvents.faultType,
+        severity: lineBreakEvents.severity,
+        status: lineBreakEvents.status,
+        breakerTripped: lineBreakEvents.breakerTripped,
+        tripTimeMs: lineBreakEvents.tripTimeMs,
+        resolvedAt: lineBreakEvents.resolvedAt,
+        resolutionNotes: lineBreakEvents.resolutionNotes,
+        assignedTo: lineBreakEvents.assignedTo,
+        feederName: feeders.name,
+        feederCode: feeders.code,
+        substationName: substations.name,
+        assignedUserName: users.fullName,
+      })
+      .from(lineBreakEvents)
+      .leftJoin(feeders, eq(lineBreakEvents.feederId, feeders.id))
+      .leftJoin(substations, eq(feeders.substationId, substations.id))
+      .leftJoin(users, eq(lineBreakEvents.assignedTo, users.id))
+      .where(eq(lineBreakEvents.id, id))
+      .limit(1);
+
+    if (!event.length) {
+      throw ApiError.notFound('Event not found');
+    }
+
+    res.json(ApiResponse.success({ event: event[0] }));
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Create new event (system generated)
+router.post('/', authenticate, operatorOrAdmin, async (req, res, next) => {
+  try {
+    const { feederId, confidenceScore, estimatedLocationKm, severity } = req.body;
+
+    const eventData = {
+      feederId,
+      detectedAt: new Date().toISOString(),
+      detectionMethod: 'ai_model',
+      confidenceScore: confidenceScore.toString(),
+      estimatedLocationKm: estimatedLocationKm.toString(),
+      faultType: 'LINE_BREAK',
+      severity,
+      status: 'detected',
+      breakerTripped: true,
+      tripTimeMs: Math.floor(Math.random() * 100) + 150,
+    };
+
+    const [event] = await db.insert(lineBreakEvents).values(eventData).returning();
+
+    // Send alerts
+    await alertService.sendEventAlerts({
+      eventId: event.id,
+      feederId: event.feederId,
+      detectedAt: event.detectedAt,
+      estimatedLocationKm: parseFloat(event.estimatedLocationKm),
+      severity: event.severity,
+      confidenceScore: parseFloat(event.confidenceScore),
+      faultType: event.faultType,
     });
 
-    const parsed = updateSchema.parse(req.body);
-    const data: any = { ...parsed };
-    if (data.resolvedAt) {
-      data.resolvedAt = new Date(data.resolvedAt);
-    }
+    // Broadcast real-time update
+    websocketService.broadcastEventUpdate({
+      eventId: event.id,
+      type: 'created',
+      data: event,
+    });
 
-    const event = await storage.updateLineBreakEvent(req.params.id, data);
+    res.status(201).json(ApiResponse.created({ event }, 'Event created and alerts sent'));
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Acknowledge event
+router.post('/:id/acknowledge', authenticate, operatorOrAdmin, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    const [event] = await db
+      .update(lineBreakEvents)
+      .set({
+        status: 'acknowledged',
+        assignedTo: userId,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(lineBreakEvents.id, id))
+      .returning();
 
     if (!event) {
-      return res.status(404).json({ error: "Event not found" });
+      throw ApiError.notFound('Event not found');
     }
 
-    res.json({ event });
+    // Broadcast real-time update
+    websocketService.broadcastEventUpdate({
+      eventId: event.id,
+      type: 'updated',
+      data: event,
+    });
+
+    res.json(ApiResponse.updated({ event }, 'Event acknowledged'));
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: "Invalid request data", details: error.errors });
+    next(error);
+  }
+});
+
+// Resolve event
+router.post('/:id/resolve', authenticate, operatorOrAdmin, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { resolutionNotes } = req.body;
+
+    const [event] = await db
+      .update(lineBreakEvents)
+      .set({
+        status: 'resolved',
+        resolvedAt: new Date().toISOString(),
+        resolutionNotes,
+      })
+      .where(eq(lineBreakEvents.id, id))
+      .returning();
+
+    if (!event) {
+      throw ApiError.notFound('Event not found');
     }
-    console.error("Error updating event:", error);
-    res.status(500).json({ error: "Failed to update event" });
+
+    // Broadcast real-time update
+    websocketService.broadcastEventUpdate({
+      eventId: event.id,
+      type: 'resolved',
+      data: event,
+    });
+
+    res.json(ApiResponse.updated({ event }, 'Event resolved'));
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get active events
+router.get('/active', authenticate, async (req, res, next) => {
+  try {
+    const events = await db
+      .select({
+        id: lineBreakEvents.id,
+        detectedAt: lineBreakEvents.detectedAt,
+        severity: lineBreakEvents.severity,
+        status: lineBreakEvents.status,
+        estimatedLocationKm: lineBreakEvents.estimatedLocationKm,
+        feederName: feeders.name,
+        feederCode: feeders.code,
+        substationName: substations.name,
+      })
+      .from(lineBreakEvents)
+      .leftJoin(feeders, eq(lineBreakEvents.feederId, feeders.id))
+      .leftJoin(substations, eq(feeders.substationId, substations.id))
+      .where(
+        and(
+          eq(lineBreakEvents.status, 'detected'),
+          gte(lineBreakEvents.detectedAt, new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        )
+      )
+      .orderBy(desc(lineBreakEvents.detectedAt));
+
+    res.json(ApiResponse.success({ events }));
+  } catch (error) {
+    next(error);
   }
 });
 

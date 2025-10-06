@@ -1,0 +1,189 @@
+{
+  "project": {
+    "name": "Kerala LT Line Break Detection System",
+    "description": "AI-powered real-time electrical line break detection for Kerala State Electricity Board",
+    "techStack": {
+      "backend": "Node.js with TypeScript + Express",
+      "frontend": "React.js with TypeScript + Vite",
+      "database": "PostgreSQL with Drizzle ORM",
+      "deployment": "Vercel",
+      "ml": "TensorFlow.js for real-time inference"
+    }
+  },
+  
+  "codeStandards": {
+    "language": "TypeScript",
+    "style": "Clean Code + SOLID Principles",
+    "formatting": {
+      "indentation": "2 spaces",
+      "quotes": "double",
+      "semicolons": true,
+      "trailingComma": "es5",
+      "printWidth": 100
+    },
+    "linting": "ESLint with TypeScript rules",
+    "testing": "Jest + React Testing Library"
+  },
+  
+  "architecture": {
+    "pattern": "MVC + Service Layer",
+    "principles": [
+      "Separation of Concerns",
+      "DRY (Don't Repeat Yourself)",
+      "KISS (Keep It Simple, Stupid)",
+      "Single Responsibility",
+      "Dependency Injection"
+    ],
+    "folderStructure": "Feature-based + Layer-based hybrid"
+  },
+  
+  "backend": {
+    "framework": "Express.js",
+    "apiStyle": "RESTful",
+    "authentication": "JWT + Session-based",
+    "validation": "Zod schemas",
+    "errorHandling": "Centralized error middleware",
+    "logging": "Console with structured format",
+    "testing": "Jest + Supertest"
+  },
+  
+  "frontend": {
+    "framework": "React 18+ with TypeScript",
+    "buildTool": "Vite",
+    "stateManagement": "React Context + Custom Hooks",
+    "styling": "Tailwind CSS + Radix UI",
+    "routing": "Wouter",
+    "apiCalls": "Fetch API with React Query",
+    "charts": "Recharts",
+    "forms": "React Hook Form + Zod"
+  },
+  
+  "database": {
+    "orm": "Drizzle ORM",
+    "migrations": "Drizzle Kit",
+    "seeding": "TypeScript seed scripts",
+    "queryOptimization": "Use indexes, avoid N+1"
+  },
+  
+  "security": {
+    "secrets": "Environment variables only",
+    "passwords": "bcrypt hashing (rounds: 12)",
+    "cors": "Configure for production",
+    "rateLimit": "Express rate limit middleware",
+    "inputValidation": "All user inputs validated with Zod",
+    "sqlInjection": "Parameterized queries only",
+    "xss": "Sanitize all outputs"
+  },
+  
+  "apiDesign": {
+    "versioning": "/api/v1/...",
+    "naming": "kebab-case for endpoints",
+    "responseFormat": {
+      "success": {
+        "success": true,
+        "data": {},
+        "message": "string"
+      },
+      "error": {
+        "success": false,
+        "error": {
+          "code": "ERROR_CODE",
+          "message": "Human readable message"
+        }
+      }
+    },
+    "statusCodes": {
+      "200": "OK",
+      "201": "Created",
+      "400": "Bad Request",
+      "401": "Unauthorized",
+      "403": "Forbidden",
+      "404": "Not Found",
+      "500": "Internal Server Error"
+    }
+  },
+  
+  "namingConventions": {
+    "variables": "camelCase",
+    "constants": "UPPER_SNAKE_CASE",
+    "functions": "camelCase (verbs)",
+    "classes": "PascalCase (nouns)",
+    "interfaces": "PascalCase with 'I' prefix",
+    "types": "PascalCase with 'T' prefix",
+    "components": "PascalCase",
+    "files": {
+      "components": "PascalCase.tsx",
+      "utilities": "camelCase.ts",
+      "constants": "UPPER_SNAKE_CASE.ts",
+      "types": "camelCase.types.ts"
+    }
+  },
+  
+  "comments": {
+    "when": "Only when logic is complex or non-obvious",
+    "style": "JSDoc for functions, inline for complex logic",
+    "avoid": "Stating the obvious"
+  },
+  
+  "gitWorkflow": {
+    "branches": {
+      "main": "Production-ready code",
+      "develop": "Integration branch",
+      "feature/*": "New features",
+      "bugfix/*": "Bug fixes"
+    },
+    "commits": {
+      "format": "type(scope): message",
+      "types": ["feat", "fix", "docs", "style", "refactor", "test", "chore"],
+      "example": "feat(api): add line break detection endpoint"
+    }
+  },
+  
+  "performance": {
+    "backend": [
+      "Use connection pooling",
+      "Implement caching where needed",
+      "Optimize database queries",
+      "Use compression middleware"
+    ],
+    "frontend": [
+      "Code splitting",
+      "Lazy loading components",
+      "Memoization (React.memo, useMemo, useCallback)",
+      "Optimize images",
+      "Minimize bundle size"
+    ]
+  },
+  
+  "errorHandling": {
+    "backend": "Try-catch in async functions, centralized error middleware",
+    "frontend": "Error boundaries for React components",
+    "logging": "Log all errors with context"
+  },
+  
+  "dataFlow": {
+    "realTime": "WebSockets for live updates",
+    "apiCalls": "Fetch with error handling and retries",
+    "stateUpdates": "Immutable patterns"
+  },
+  
+  "mlIntegration": {
+    "modelFormat": "TensorFlow.js SavedModel",
+    "inference": "Server-side (Node.js)",
+    "preprocessing": "Feature extraction in backend service",
+    "monitoring": "Track accuracy, latency, errors"
+  },
+  
+  "bestPractices": [
+    "Write self-documenting code",
+    "Keep functions small (< 50 lines ideally)",
+    "Use descriptive variable names",
+    "Avoid magic numbers/strings (use constants)",
+    "Handle edge cases",
+    "Validate all inputs",
+    "Never trust client data",
+    "Use TypeScript strict mode",
+    "Write tests for critical logic",
+    "Keep dependencies minimal and updated"
+  ]
+}

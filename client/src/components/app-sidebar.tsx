@@ -1,116 +1,95 @@
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
-} from "@/components/ui/sidebar";
-import { LayoutDashboard, Activity, MapPin, Database, Settings, User, AlertCircle } from "lucide-react";
-import { Link, useLocation } from "wouter";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import React from 'react';
+import { Link, useLocation } from 'wouter';
+import { Button } from '@/components/ui/button';
+import { 
+  LayoutDashboard, 
+  AlertTriangle, 
+  Activity, 
+  Zap, 
+  MapPin, 
+  Settings,
+  LogOut,
+  Menu
+} from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
-const menuItems = [
-  {
-    title: "Dashboard",
-    url: "/",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Events",
-    url: "/events",
-    icon: AlertCircle,
-  },
-  {
-    title: "Feeders",
-    url: "/feeders",
-    icon: Activity,
-  },
-  {
-    title: "Substations",
-    url: "/substations",
-    icon: MapPin,
-  },
-  {
-    title: "Waveforms",
-    url: "/waveforms",
-    icon: Database,
-  },
+const navigation = [
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Events', href: '/events', icon: AlertTriangle },
+  { name: 'Waveforms', href: '/waveforms', icon: Activity },
+  { name: 'Substations', href: '/substations', icon: Zap },
+  { name: 'Feeders', href: '/feeders', icon: MapPin },
 ];
 
 export function AppSidebar() {
   const [location] = useLocation();
+  const { user, logout } = useAuth();
 
   return (
-    <Sidebar>
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <img 
-            src="/attached_assets/SIH P-1_LOGO_1759550517457.jpg" 
-            alt="KSEBL Logo" 
-            className="w-10 h-10 object-contain"
-          />
-          <div>
-            <h2 className="text-sm font-bold">KSEBL</h2>
-            <p className="text-xs font-semibold text-primary">LIFE LINE</p>
-          </div>
+    <div className="flex h-full w-64 flex-col bg-white border-r border-gray-200">
+      {/* Logo */}
+      <div className="flex h-16 items-center px-6 border-b border-gray-200">
+        <img 
+          src="/attached_assets/SIH P-1_LOGO_1759550517457.jpg" 
+          alt="KSEBL Logo" 
+          className="h-8 w-auto object-contain"
+        />
+        <div className="ml-3">
+          <h1 className="text-lg font-semibold text-gray-900">KSEBL Life Line</h1>
+          <p className="text-xs text-gray-500">Line Break Detection</p>
         </div>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => {
-                const isActive = location === item.url;
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive} data-testid={`link-sidebar-${item.title.toLowerCase()}`}>
-                      <Link href={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Settings</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild data-testid="link-sidebar-settings">
-                  <Link href="/settings">
-                    <Settings />
-                    <span>Settings</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      <SidebarFooter className="p-4 border-t border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <Avatar className="w-8 h-8">
-            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-              OP
-            </AvatarFallback>
-          </Avatar>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-4 py-6 space-y-2">
+        {navigation.map((item) => {
+          const isActive = location === item.href;
+          return (
+            <Link key={item.name} href={item.href}>
+              <Button
+                variant={isActive ? "default" : "ghost"}
+                className={`w-full justify-start ${
+                  isActive 
+                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <item.icon className="mr-3 h-4 w-4" />
+                {item.name}
+              </Button>
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* User Info & Logout */}
+      <div className="border-t border-gray-200 p-4">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
+            <span className="text-sm font-medium text-white">
+              {user?.fullName?.charAt(0) || 'U'}
+            </span>
+          </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">Operator</p>
-            <p className="text-xs text-muted-foreground truncate">operator@kerala.gov</p>
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {user?.fullName || 'User'}
+            </p>
+            <p className="text-xs text-gray-500 truncate">
+              {user?.role || 'User'}
+            </p>
           </div>
-          <User className="w-4 h-4 text-muted-foreground" />
         </div>
-      </SidebarFooter>
-    </Sidebar>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={logout}
+          className="w-full justify-start text-gray-700 hover:bg-gray-100"
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign Out
+        </Button>
+      </div>
+    </div>
   );
 }

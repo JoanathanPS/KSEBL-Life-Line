@@ -1,109 +1,129 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Search, MapPin, Zap, Gauge } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import type { Substation } from "@shared/schema";
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { MapPin, Zap, Activity, AlertTriangle } from 'lucide-react';
+import { substationsAPI } from '../api/client';
 
-interface SubstationsResponse {
-  substations: (Substation & { numFeeders?: number })[];
+interface Substation {
+  id: string;
+  name: string;
+  code: string;
+  locationLat: number;
+  locationLng: number;
+  voltageLevel: string;
+  capacityMva: number;
+  isActive: boolean;
+  activeEvents: number;
 }
 
 export default function SubstationsPage() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [substations, setSubstations] = useState<Substation[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const { data: substationsData, isLoading } = useQuery<SubstationsResponse>({
-    queryKey: ["/api/substations"],
-    refetchInterval: 30000,
-  });
+  useEffect(() => {
+    loadSubstations();
+  }, []);
 
-  const filteredSubstations = useMemo(() => {
-    const substations = substationsData?.substations || [];
-    if (!searchQuery) return substations;
-    
-    return substations.filter((substation) =>
-      substation.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      substation.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  const loadSubstations = async () => {
+    try {
+      setLoading(true);
+      const response = await substationsAPI.getSubstations();
+      setSubstations(response.data);
+    } catch (error) {
+      console.error('Failed to load substations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
+            <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">Loading...</span>
+          </div>
+          <p className="mt-4 text-muted-foreground">Loading substations...</p>
+        </div>
+      </div>
     );
-  }, [substationsData, searchQuery]);
+  }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Substations</h1>
-        <p className="text-muted-foreground mt-1">Monitor all substations in the Kerala grid</p>
-      </div>
-
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Search substations by code or name..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-          data-testid="input-search-substations"
-        />
-      </div>
-
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-[280px] w-full" />
-          ))}
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Substations</h1>
+          <p className="text-gray-600 mt-1">
+            Monitor electrical substations across Kerala
+          </p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredSubstations.map((substation) => (
-            <Card
-              key={substation.id}
-              className="p-6 hover-elevate cursor-pointer"
-              onClick={() => console.log("View substation:", substation.id)}
-              data-testid={`card-substation-${substation.id}`}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="font-semibold font-mono text-sm text-primary">{substation.code}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{substation.name}</p>
-                </div>
-                <Zap className={`w-5 h-5 ${substation.isActive ? 'text-severity-normal' : 'text-muted-foreground'}`} />
+        <div className="flex items-center gap-2">
+          <Badge variant="outline">
+            {substations.length} Total Substations
+          </Badge>
+        </div>
+      </div>
+
+      {/* Substations Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {substations.map((substation) => (
+          <Card key={substation.id} className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">{substation.name}</CardTitle>
+                <Badge
+                  className={
+                    substation.isActive
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }
+                >
+                  {substation.isActive ? 'Active' : 'Inactive'}
+                </Badge>
               </div>
-              
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">{substation.address || "Kerala"}</span>
+              <p className="text-sm text-gray-600">{substation.code}</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-gray-500" />
+                  <span>
+                    {substation.locationLat.toFixed(4)}, {substation.locationLng.toFixed(4)}
+                  </span>
                 </div>
                 
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Voltage Level</span>
-                  <span className="font-medium font-mono text-xs">{substation.voltageLevel || "N/A"}</span>
+                <div className="flex items-center gap-2 text-sm">
+                  <Zap className="h-4 w-4 text-gray-500" />
+                  <span>{substation.voltageLevel} kV</span>
                 </div>
                 
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Capacity</span>
-                  <div className="flex items-center gap-1">
-                    <Gauge className="w-3 h-3" />
-                    <span className="font-medium">{substation.capacityMva ? `${substation.capacityMva} MVA` : "N/A"}</span>
+                <div className="flex items-center gap-2 text-sm">
+                  <Activity className="h-4 w-4 text-gray-500" />
+                  <span>{substation.capacityMva} MVA</span>
+                </div>
+
+                {substation.activeEvents > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                    <span className="text-red-600 font-medium">
+                      {substation.activeEvents} Active Events
+                    </span>
                   </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Feeders</span>
-                  <span className="font-medium">{substation.numFeeders || "N/A"}</span>
-                </div>
-                
-                <div className="flex items-center justify-end pt-2">
-                  <Badge variant="outline" className={`${substation.isActive ? 'bg-severity-normal/10 text-severity-normal border-severity-normal/20' : 'bg-muted text-muted-foreground'}`}>
-                    {substation.isActive ? 'Operational' : 'Offline'}
-                  </Badge>
+                )}
+
+                <div className="pt-2">
+                  <Button size="sm" className="w-full">
+                    View Details
+                  </Button>
                 </div>
               </div>
-            </Card>
-          ))}
-        </div>
-      )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

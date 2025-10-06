@@ -1,117 +1,127 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Search, Activity, MapPin } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import type { Feeder } from "@shared/schema";
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Zap, Activity, AlertTriangle, MapPin } from 'lucide-react';
+import { feedersAPI } from '../api/client';
 
-interface FeedersResponse {
-  feeders: (Feeder & { substationName?: string })[];
+interface Feeder {
+  id: string;
+  name: string;
+  code: string;
+  substationId: string;
+  substationName: string;
+  voltageLevel: string;
+  capacityMva: number;
+  isActive: boolean;
+  activeEvents: number;
 }
 
 export default function FeedersPage() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [feeders, setFeeders] = useState<Feeder[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const { data: feedersData, isLoading } = useQuery<FeedersResponse>({
-    queryKey: ["/api/feeders"],
-    refetchInterval: 30000,
-  });
+  useEffect(() => {
+    loadFeeders();
+  }, []);
 
-  const areaTypeColors = {
-    urban: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-    rural: "bg-green-500/10 text-green-500 border-green-500/20",
-    "semi-urban": "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+  const loadFeeders = async () => {
+    try {
+      setLoading(true);
+      const response = await feedersAPI.getFeeders();
+      setFeeders(response.data);
+    } catch (error) {
+      console.error('Failed to load feeders:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const filteredFeeders = useMemo(() => {
-    const feeders = feedersData?.feeders || [];
-    if (!searchQuery) return feeders;
-    
-    return feeders.filter((feeder) =>
-      feeder.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      feeder.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
+            <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">Loading...</span>
+          </div>
+          <p className="mt-4 text-muted-foreground">Loading feeders...</p>
+        </div>
+      </div>
     );
-  }, [feedersData, searchQuery]);
+  }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Feeders</h1>
-        <p className="text-muted-foreground mt-1">Monitor all distribution feeders in the network</p>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Feeders</h1>
+          <p className="text-gray-600 mt-1">
+            Monitor electrical feeders across Kerala
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline">
+            {feeders.length} Total Feeders
+          </Badge>
+        </div>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Search feeders by code or name..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-          data-testid="input-search-feeders"
-        />
-      </div>
+      {/* Feeders Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {feeders.map((feeder) => (
+          <Card key={feeder.id} className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">{feeder.name}</CardTitle>
+                <Badge
+                  className={
+                    feeder.isActive
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }
+                >
+                  {feeder.isActive ? 'Active' : 'Inactive'}
+                </Badge>
+              </div>
+              <p className="text-sm text-gray-600">{feeder.code}</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-gray-500" />
+                  <span>{feeder.substationName}</span>
+                </div>
+                
+                <div className="flex items-center gap-2 text-sm">
+                  <Zap className="h-4 w-4 text-gray-500" />
+                  <span>{feeder.voltageLevel} kV</span>
+                </div>
+                
+                <div className="flex items-center gap-2 text-sm">
+                  <Activity className="h-4 w-4 text-gray-500" />
+                  <span>{feeder.capacityMva} MVA</span>
+                </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-[280px] w-full" />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredFeeders.map((feeder) => (
-            <Card
-              key={feeder.id}
-              className="p-6 hover-elevate cursor-pointer"
-              onClick={() => console.log("View feeder:", feeder.id)}
-              data-testid={`card-feeder-${feeder.id}`}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="font-semibold font-mono text-sm text-primary">{feeder.code}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{feeder.name}</p>
-                </div>
-                <Activity className={`w-5 h-5 ${feeder.isActive ? 'text-severity-normal' : 'text-muted-foreground'}`} />
-              </div>
-              
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">{feeder.substationName || "Unknown Substation"}</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Length</span>
-                  <span className="font-medium">{feeder.lengthKm ? `${feeder.lengthKm} km` : "N/A"}</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Conductor</span>
-                  <span className="font-medium font-mono text-xs">{feeder.conductorType || "N/A"}</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Consumers</span>
-                  <span className="font-medium">{feeder.numConsumers?.toLocaleString() || "N/A"}</span>
-                </div>
-                
-                <div className="flex items-center justify-between pt-2">
-                  {feeder.areaType && (
-                    <Badge variant="outline" className={areaTypeColors[feeder.areaType as keyof typeof areaTypeColors]}>
-                      {feeder.areaType}
-                    </Badge>
-                  )}
-                  <Badge variant="outline" className={`${feeder.isActive ? 'bg-severity-normal/10 text-severity-normal border-severity-normal/20' : 'bg-muted text-muted-foreground'}`}>
-                    {feeder.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
+                {feeder.activeEvents > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                    <span className="text-red-600 font-medium">
+                      {feeder.activeEvents} Active Events
+                    </span>
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <Button size="sm" className="w-full">
+                    View Details
+                  </Button>
                 </div>
               </div>
-            </Card>
-          ))}
-        </div>
-      )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

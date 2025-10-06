@@ -1,47 +1,22 @@
-import { Switch, Route, useLocation, Redirect } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
-import ThemeToggle from "@/components/ThemeToggle";
-import NotFound from "@/pages/not-found";
-import LoginPage from "@/pages/login";
-import DashboardPage from "@/pages/dashboard";
-import EventsPage from "@/pages/events";
-import FeedersPage from "@/pages/feeders";
-import SubstationsPage from "@/pages/substations";
-import WaveformsPage from "@/pages/waveforms";
-import { Bell } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useSession } from "@/hooks/useSession";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './hooks/useAuth';
+import { Toaster } from './components/ui/toaster';
+import DashboardPage from './pages/dashboard';
+import EventsPage from './pages/events';
+import WaveformsPage from './pages/waveforms';
+import LoginPage from './pages/login';
+import SubstationsPage from './pages/substations';
+import FeedersPage from './pages/feeders';
+import NotFoundPage from './pages/not-found';
+import AppSidebar from './components/app-sidebar';
 
-function Router() {
-  return (
-    <Switch>
-      <Route path="/login" component={LoginPage} />
-      <Route path="/" component={DashboardPage} />
-      <Route path="/events" component={EventsPage} />
-      <Route path="/feeders" component={FeedersPage} />
-      <Route path="/substations" component={SubstationsPage} />
-      <Route path="/waveforms" component={WaveformsPage} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
-
-function AppLayout() {
-  const [location] = useLocation();
-  const { user, isLoading, isAuthenticated } = useSession();
-
-  const protectedRoutes = ["/", "/events", "/feeders", "/substations", "/waveforms"];
-  const isProtectedRoute = protectedRoutes.includes(location);
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
             <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">Loading...</span>
@@ -52,68 +27,84 @@ function AppLayout() {
     );
   }
 
-  if (!isAuthenticated && isProtectedRoute) {
-    return <Redirect to="/login" />;
-  }
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+};
 
-  if (isAuthenticated && location === "/login") {
-    return <Redirect to="/" />;
-  }
-
-  if (location === "/login") {
-    return <Router />;
-  }
-
-  const style = {
-    "--sidebar-width": "16rem",
-  };
-
+const AppLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-screen w-full">
-        <AppSidebar />
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <header className="flex items-center justify-between gap-4 px-6 py-3 border-b border-border bg-background sticky top-0 z-50">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger data-testid="button-sidebar-toggle" />
-              <div className="hidden sm:flex items-center gap-2">
-                <img 
-                  src="/attached_assets/SIH P-1_LOGO_1759550517457.jpg" 
-                  alt="KSEBL Logo" 
-                  className="w-8 h-8 object-contain"
-                />
-                <div>
-                  <h2 className="text-sm font-bold">KSEBL LIFE LINE</h2>
-                  <p className="text-xs text-muted-foreground">Real-time Detection System</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="relative" data-testid="button-notifications">
-                <Bell className="h-5 w-5" />
-                <Badge variant="destructive" className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center text-xs">
-                  3
-                </Badge>
-              </Button>
-              <ThemeToggle />
-            </div>
-          </header>
-          <main className="flex-1 overflow-auto p-6 bg-background">
-            <Router />
-          </main>
+    <div className="flex h-screen bg-gray-50">
+      <AppSidebar />
+      <main className="flex-1 overflow-auto">
+        {children}
+      </main>
+    </div>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <div className="App">
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <DashboardPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/events"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <EventsPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/waveforms"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <WaveformsPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/substations"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <SubstationsPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/feeders"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <FeedersPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+          <Toaster />
         </div>
-      </div>
-    </SidebarProvider>
+      </Router>
+    </AuthProvider>
   );
 }
 
-export default function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AppLayout />
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
-}
+export default App;
