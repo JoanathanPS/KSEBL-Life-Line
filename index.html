@@ -88,7 +88,7 @@
 
     <script type="text/babel">
         const { useState, useEffect, createContext, useContext } = React;
-        const { BrowserRouter, Routes, Route, Navigate, useLocation } = wouter;
+        const { Router, Route, useLocation, Redirect } = wouter;
 
         // Mock API Client
         const apiClient = {
@@ -144,8 +144,8 @@
         const useAuth = () => useContext(AuthContext);
 
         const AuthProvider = ({ children }) => {
-            const [user, setUser] = useState(null);
-            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [user, setUser] = useState({ id: '1', fullName: 'Admin User', email: 'admin@ksebl.gov.in', role: 'admin' });
+            const [isAuthenticated, setIsAuthenticated] = useState(true);
             const [isLoading, setIsLoading] = useState(false);
 
             const login = async (email, password) => {
@@ -996,16 +996,14 @@
         const App = () => {
             return (
                 <AuthProvider>
-                    <BrowserRouter>
-                        <Routes>
-                            <Route path="/login" component={LoginPage} />
-                            <Route path="/" component={() => (
-                                <ProtectedRoute>
-                                    <DashboardPage />
-                                </ProtectedRoute>
-                            )} />
-                        </Routes>
-                    </BrowserRouter>
+                    <Router>
+                        <Route path="/login" component={LoginPage} />
+                        <Route path="/">
+                            <ProtectedRoute>
+                                <DashboardPage />
+                            </ProtectedRoute>
+                        </Route>
+                    </Router>
                 </AuthProvider>
             );
         };

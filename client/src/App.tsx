@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Router, Route, useLocation, Redirect } from 'wouter';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { Toaster } from './components/ui/toaster';
 import DashboardPage from './pages/dashboard';
@@ -27,7 +27,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  return isAuthenticated ? <>{children}</> : <Redirect to="/login" />;
 };
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
@@ -46,60 +46,43 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="App">
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <DashboardPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/events"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <EventsPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/waveforms"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <WaveformsPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/substations"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <SubstationsPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/feeders"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <FeedersPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
+          <Route path="/login" component={LoginPage} />
+          <Route path="/">
+            <ProtectedRoute>
+              <AppLayout>
+                <DashboardPage />
+              </AppLayout>
+            </ProtectedRoute>
+          </Route>
+          <Route path="/events">
+            <ProtectedRoute>
+              <AppLayout>
+                <EventsPage />
+              </AppLayout>
+            </ProtectedRoute>
+          </Route>
+          <Route path="/waveforms">
+            <ProtectedRoute>
+              <AppLayout>
+                <WaveformsPage />
+              </AppLayout>
+            </ProtectedRoute>
+          </Route>
+          <Route path="/substations">
+            <ProtectedRoute>
+              <AppLayout>
+                <SubstationsPage />
+              </AppLayout>
+            </ProtectedRoute>
+          </Route>
+          <Route path="/feeders">
+            <ProtectedRoute>
+              <AppLayout>
+                <FeedersPage />
+              </AppLayout>
+            </ProtectedRoute>
+          </Route>
+          <Route path="/:rest*" component={NotFoundPage} />
           <Toaster />
         </div>
       </Router>
