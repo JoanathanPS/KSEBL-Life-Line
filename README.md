@@ -59,16 +59,14 @@ This system is designed to help Kerala State Electricity Board (KSEBL) quickly d
 ### Prerequisites
 
 - Node.js 18+ and npm
-- PostgreSQL database
-- SMTP email service (Gmail, SendGrid, etc.)
-- Twilio account (optional, for SMS)
+- Git
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd kerala-line-break-detection
+   git clone https://github.com/AFTAN18/KSEBL-LIFE-LINE.git
+   cd KSEBL-LIFE-LINE
    ```
 
 2. **Install dependencies**
@@ -76,30 +74,74 @@ This system is designed to help Kerala State Electricity Board (KSEBL) quickly d
    npm install
    ```
 
-3. **Set up environment variables**
+3. **Start the application (Simple Setup)**
    ```bash
-   cp env.example .env
-   # Edit .env with your actual values
+   npm run server:simple
    ```
 
-4. **Set up the database**
-   ```bash
-   # Create PostgreSQL database
-   createdb kerala_line_break
+4. **Open your browser**
+   ```
+   http://localhost:5000
+   ```
 
-   # Run database migrations
+### Alternative: Full Development Setup
+
+For development with database and React frontend:
+
+1. **Set up environment variables** (optional)
+   ```bash
+   cp config-template.env .env
+   # Edit .env with your configuration
+   ```
+
+2. **Set up the database** (optional)
+   ```bash
    npm run db:push
+   npm run db:seed
    ```
 
-5. **Start the development server**
+3. **Start full development server**
    ```bash
    npm run dev
    ```
 
-6. **Open your browser**
-   ```
-   http://localhost:5000
-   ```
+4. **Access the application**
+   - Main app: `http://localhost:5000`
+   - React dev server: `http://localhost:5173`
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+1. **Blank Page on Load**
+   - Ensure you're using `npm run server:simple` for basic setup
+   - Check browser console for JavaScript errors
+   - Verify all dependencies are installed with `npm install`
+
+2. **Tailwind CSS Errors**
+   - The project uses a simplified Tailwind config
+   - If you see plugin errors, the config has been fixed to avoid them
+
+3. **Port Already in Use**
+   - Kill existing Node.js processes: `taskkill /F /IM node.exe` (Windows)
+   - Or use a different port by setting `PORT=3000` in your environment
+
+4. **Database Connection Issues**
+   - For basic testing, the app works without a database
+   - Use `npm run server:simple` to skip database setup
+
+### Quick Fixes
+
+```bash
+# Reset everything
+npm install
+npm run server:simple
+
+# If still having issues
+rm -rf node_modules package-lock.json
+npm install
+npm run server:simple
+```
 
 ## ⚙️ Configuration
 
